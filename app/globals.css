@@ -99,4 +99,28 @@
     background-clip: text;
     color: transparent;
   }
+
+  .animate-shimmer {
+    animation: shimmer 2.2s linear infinite;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(240%);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  body,
+  a,
+  button,
+  input,
+  textarea,
+  select {
+    cursor: none;
+  }
 }

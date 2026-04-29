@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
+import { PageTransition } from "@/components/layout/PageTransition";
 import { ThemeProvider } from "@/components/layout/theme-provider";
+import { CustomCursor } from "@/components/ui/CustomCursor";
 import "./globals.css";
 
 const inter = Inter({
@@ -53,6 +55,8 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange={false}
         >
+          <PageTransition />
+          <CustomCursor />
           {children}
         </ThemeProvider>
       </body>
