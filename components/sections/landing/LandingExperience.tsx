@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef } from "react";
 import { animate, stagger } from "animejs";
 import { ArrowDown, ArrowUpRight, MapPin, Sparkles, Star } from "lucide-react";
@@ -7,15 +9,18 @@ import { MagneticButton } from "@/components/ui/MagneticButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  createLenisSmoothScroll,
   gsap,
   prefersReducedMotion,
   registerGsapPlugins,
   ScrollTrigger,
   splitTextWords,
 } from "@/lib/animations/gsap";
-import { createHeroThreeBackground } from "@/lib/animations/three-bg";
 import type { PortfolioItem, Testimonial } from "@/lib/types";
+
+const HeroBg = dynamic(
+  () => import("@/components/three/HeroBg").then((module) => module.HeroBg),
+  { ssr: false }
+);
 
 interface LandingExperienceProps {
   featuredWork: PortfolioItem[];
@@ -73,7 +78,6 @@ function resolveProjectLink(item: PortfolioItem) {
 
 export function LandingExperience({ featuredWork, testimonials }: LandingExperienceProps) {
   const heroSectionRef = useRef<HTMLElement | null>(null);
-  const threeCanvasHostRef = useRef<HTMLDivElement | null>(null);
   const swikritRef = useRef<HTMLHeadingElement | null>(null);
   const pokhrelRef = useRef<HTMLHeadingElement | null>(null);
   const subtitleTextRef = useRef<HTMLSpanElement | null>(null);
@@ -118,45 +122,31 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
 
   useEffect(() => {
     registerGsapPlugins();
-    const destroyLenis = createLenisSmoothScroll();
-
-    return () => {
-      destroyLenis();
-    };
-  }, []);
-
-  useEffect(() => {
-    const heroSection = heroSectionRef.current;
-    const host = threeCanvasHostRef.current;
-
-    if (!heroSection || !host || prefersReducedMotion()) {
-      return;
-    }
-
-    return createHeroThreeBackground({
-      canvasHost: host,
-      scrollTriggerSection: heroSection,
-    });
   }, []);
 
   useEffect(() => {
     const reduceMotion = prefersReducedMotion();
+    const heroSection = heroSectionRef.current;
     const swikrit = swikritRef.current;
     const pokhrel = pokhrelRef.current;
     const subtitleText = subtitleTextRef.current;
     const subtitleCursor = subtitleCursorRef.current;
     const scrollIndicator = scrollIndicatorRef.current;
+    const counterNodes = counterRefs.current;
 
-    if (!swikrit || !pokhrel || !subtitleText || !subtitleCursor) {
+    if (!heroSection || !swikrit || !pokhrel || !subtitleText || !subtitleCursor) {
       return;
     }
 
     const subtitle = "AFTER EFFECTS ART";
+    const heroMetaItems = Array.from(
+      heroSection.querySelectorAll<HTMLElement>(".hero-meta")
+    );
 
     if (reduceMotion) {
       subtitleText.textContent = subtitle;
       subtitleCursor.style.opacity = "1";
-      counterRefs.current.forEach((counter, index) => {
+      counterNodes.forEach((counter, index) => {
         if (counter) {
           counter.textContent = String(heroStats[index]?.value ?? 0);
         }
@@ -166,37 +156,58 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
 
     const introTimeline = gsap.timeline({ defaults: { ease: "softReveal" } });
     introTimeline
-      .from(swikrit, { xPercent: -35, autoAlpha: 0, duration: 0.9 })
-      .from(pokhrel, { xPercent: 35, autoAlpha: 0, duration: 0.9 }, 0.04)
-      .from(".hero-meta", { y: 18, autoAlpha: 0, duration: 0.6, stagger: 0.1 }, 0.42);
+      .fromTo(
+        swikrit,
+        { x: -48, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.72, clearProps: "transform,opacity" }
+      )
+      .fromTo(
+        pokhrel,
+        { x: 48, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.72, clearProps: "transform,opacity" },
+        0.05
+      )
+      .fromTo(
+        heroMetaItems,
+        { y: 16, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.45,
+          stagger: 0.08,
+          clearProps: "transform,opacity",
+        },
+        0.24
+      );
 
+    subtitleText.textContent = "";
     const typeState = { chars: 0 };
-    const typing = animate(typeState, {
+    const typing = gsap.to(typeState, {
       chars: subtitle.length,
-      round: 1,
-      easing: "easeOutExpo",
-      duration: 2200,
-      delay: 350,
-      update: () => {
-        subtitleText.textContent = subtitle.slice(0, typeState.chars);
+      ease: "none",
+      duration: 1.2,
+      delay: 0.35,
+      onUpdate: () => {
+        subtitleText.textContent = subtitle.slice(0, Math.round(typeState.chars));
       },
     });
 
-    const cursorBlink = animate(subtitleCursor, {
-      opacity: [1, 0],
-      direction: "alternate",
-      loop: true,
-      duration: 520,
-      easing: "easeInOutSine",
+    const cursorBlink = gsap.to(subtitleCursor, {
+      opacity: 0,
+      repeat: -1,
+      yoyo: true,
+      duration: 0.45,
+      ease: "none",
     });
 
-    const counterTweens = counterRefs.current.map((counter, index) => {
+    const counterTweens = counterNodes.map((counter, index) => {
       if (!counter) {
         return null;
       }
 
       const target = heroStats[index]?.value ?? 0;
       const value = { current: 0 };
+      counter.textContent = "0";
 
       return gsap.to(value, {
         current: target,
@@ -221,10 +232,22 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
 
     return () => {
       introTimeline.kill();
-      typing.pause();
-      cursorBlink.pause();
+      typing.kill();
+      cursorBlink.kill();
       counterTweens.forEach((tween) => tween?.kill());
       indicatorTween?.kill();
+
+      subtitleText.textContent = subtitle;
+      subtitleCursor.style.opacity = "1";
+      gsap.set([swikrit, pokhrel, ...heroMetaItems], {
+        clearProps: "transform,opacity",
+      });
+
+      counterNodes.forEach((counter, index) => {
+        if (counter) {
+          counter.textContent = String(heroStats[index]?.value ?? 0);
+        }
+      });
     };
   }, []);
 
@@ -446,10 +469,9 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
         className="relative isolate overflow-hidden pt-14 sm:pt-20"
         data-cursor-tone="dark"
       >
-        <div
-          ref={threeCanvasHostRef}
+        <HeroBg
+          sectionRef={heroSectionRef}
           className="pointer-events-none absolute inset-0 -z-10 opacity-85"
-          aria-hidden="true"
         />
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_8%,hsl(var(--brand)/0.24),transparent_34%),radial-gradient(circle_at_85%_15%,hsl(var(--brand)/0.12),transparent_28%),linear-gradient(180deg,hsl(var(--surface))_0%,hsl(var(--background))_48%)]" />
 
@@ -504,7 +526,7 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
                         counterRefs.current[index] = node;
                       }}
                     >
-                      0
+                      {stat.value}
                     </span>
                     <span>{stat.suffix}</span>
                   </p>
@@ -645,11 +667,12 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
               >
                 <div className="relative h-64 overflow-hidden">
                   {hasImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={item.thumbnail_url as string}
                       alt={item.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      fill
+                      sizes="(max-width: 1280px) 100vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   ) : (
                     <div className="h-full w-full bg-[radial-gradient(circle_at_20%_20%,hsl(var(--brand)/0.35),transparent_35%),linear-gradient(130deg,hsl(var(--surface)),black)] transition-transform duration-500 group-hover:scale-110" />
@@ -751,7 +774,7 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
         <div className="container text-center">
           <h3
             ref={gradientHeadingRef}
-            className="mx-auto max-w-4xl bg-[linear-gradient(90deg,#ffffff_0%,#e8c547_35%,#ffffff_70%,#e8c547_100%)] bg-[length:200%_100%] bg-clip-text font-heading text-4xl font-bold text-transparent sm:text-5xl lg:text-6xl"
+            className="mx-auto max-w-4xl bg-[linear-gradient(90deg,#ffffff_0%,#8b5cf6_35%,#ffffff_70%,#8b5cf6_100%)] bg-[length:200%_100%] bg-clip-text font-heading text-4xl font-bold text-transparent sm:text-5xl lg:text-6xl"
           >
             Let&apos;s Create Something ✦ Cinematic
           </h3>

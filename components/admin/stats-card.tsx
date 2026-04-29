@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { StatsCard as EnhancedStatsCard } from "@/components/admin/StatsCard";
 
 interface StatsCardProps {
   label: string;
@@ -6,16 +6,5 @@ interface StatsCardProps {
 }
 
 export function StatsCard({ label, value }: StatsCardProps) {
-  return (
-    <Card className="border-border/80 bg-card/70">
-      <CardHeader className="pb-2">
-        <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">
-          {label}
-        </p>
-      </CardHeader>
-      <CardContent>
-        <p className="font-heading text-3xl font-bold text-brand">{value}</p>
-      </CardContent>
-    </Card>
-  );
+  return <EnhancedStatsCard title={label} value={value} />;
 }

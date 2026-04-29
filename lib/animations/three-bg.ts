@@ -18,7 +18,10 @@ export function createHeroThreeBackground({
 
   registerGsapPlugins();
 
-  const particleCount = 2000;
+  const reduceMotion = prefersReducedMotion();
+  const area = Math.max(canvasHost.clientWidth * canvasHost.clientHeight, 1);
+  const adaptiveCount = Math.floor(area / (reduceMotion ? 2600 : 1800));
+  const particleCount = Math.min(1200, Math.max(600, adaptiveCount));
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(
     60,
@@ -29,11 +32,11 @@ export function createHeroThreeBackground({
   camera.position.set(0, 0, 4);
 
   const renderer = new THREE.WebGLRenderer({
-    antialias: true,
+    antialias: false,
     alpha: true,
     powerPreference: "high-performance",
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(canvasHost.clientWidth, canvasHost.clientHeight);
   renderer.setClearColor(0x000000, 0);
   canvasHost.appendChild(renderer.domElement);
@@ -52,7 +55,7 @@ export function createHeroThreeBackground({
     positions[i3 + 2] = radius * Math.cos(phi);
 
     const isGold = Math.random() > 0.52;
-    const color = isGold ? new THREE.Color("#e8c547") : new THREE.Color("#ffffff");
+    const color = isGold ? new THREE.Color("#8b5cf6") : new THREE.Color("#ffffff");
 
     colors[i3] = color.r;
     colors[i3 + 1] = color.g;
@@ -64,7 +67,7 @@ export function createHeroThreeBackground({
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
   const material = new THREE.PointsMaterial({
-    size: 0.025,
+    size: 0.022,
     sizeAttenuation: true,
     transparent: true,
     opacity: 0.9,
@@ -77,7 +80,6 @@ export function createHeroThreeBackground({
   scene.add(points);
 
   const mouse = { x: 0, y: 0 };
-  const reduceMotion = prefersReducedMotion();
 
   const onPointerMove = (event: PointerEvent) => {
     const rect = canvasHost.getBoundingClientRect();
@@ -88,7 +90,13 @@ export function createHeroThreeBackground({
     mouse.y = -(y * 2 - 1);
   };
 
-  window.addEventListener("pointermove", onPointerMove, { passive: true });
+  const onPointerLeave = () => {
+    mouse.x = 0;
+    mouse.y = 0;
+  };
+
+  canvasHost.addEventListener("pointermove", onPointerMove, { passive: true });
+  canvasHost.addEventListener("pointerleave", onPointerLeave, { passive: true });
 
   const opacityState = { value: 0.9 };
   let scrollTween: gsap.core.Tween | undefined;
@@ -117,6 +125,7 @@ export function createHeroThreeBackground({
 
     camera.aspect = clientWidth / clientHeight;
     camera.updateProjectionMatrix();
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setSize(clientWidth, clientHeight);
   });
   resizeObserver.observe(canvasHost);
@@ -128,9 +137,9 @@ export function createHeroThreeBackground({
     const elapsed = clock.getElapsedTime();
 
     if (!reduceMotion) {
-      const orbit = elapsed * 0.14;
-      camera.position.x = Math.sin(orbit) * 2.8 + mouse.x * 0.38;
-      camera.position.y = mouse.y * 0.42;
+      const orbit = elapsed * 0.12;
+      camera.position.x = Math.sin(orbit) * 2.6 + mouse.x * 0.28;
+      camera.position.y = mouse.y * 0.32;
       camera.position.z = Math.cos(orbit) * 2.8 + 3.2;
     }
 
@@ -146,7 +155,8 @@ export function createHeroThreeBackground({
 
   return () => {
     window.cancelAnimationFrame(rafId);
-    window.removeEventListener("pointermove", onPointerMove);
+    canvasHost.removeEventListener("pointermove", onPointerMove);
+    canvasHost.removeEventListener("pointerleave", onPointerLeave);
     resizeObserver.disconnect();
     scrollTween?.kill();
     ScrollTrigger.getAll().forEach((trigger) => {

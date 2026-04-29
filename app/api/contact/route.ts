@@ -1,23 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+
+const contactSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  subject: z.string().min(3),
+  message: z.string().min(20),
+  project_type: z.string().min(1),
+  budget: z.string().min(1),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const payload = (await request.json()) as {
-      name?: string;
-      email?: string;
-      subject?: string;
-      message?: string;
-      project_type?: string;
-      budget?: string;
-    };
+    const body = await request.json();
+    const parseResult = contactSchema.safeParse(body);
 
-    if (!payload.name || !payload.email || !payload.message) {
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: "Name, email, and message are required." },
+        { error: parseResult.error.issues[0]?.message ?? "Invalid request payload." },
         { status: 400 }
       );
     }
+
+    const payload = parseResult.data;
 
     const supabase = createClient();
     const { error } = await supabase.from("contact_inquiries").insert({
@@ -32,6 +38,12 @@ export async function POST(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    console.log("New contact inquiry", {
+      email: payload.email,
+      subject: payload.subject,
+      project_type: payload.project_type,
+    });
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch {

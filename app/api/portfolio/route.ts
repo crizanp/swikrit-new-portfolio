@@ -6,6 +6,11 @@ export async function GET(request: NextRequest) {
     const supabase = createClient();
     const searchParams = request.nextUrl.searchParams;
     const featuredOnly = searchParams.get("featured") === "true";
+    const category = searchParams
+      .get("category")
+      ?.toLowerCase()
+      .trim()
+      .replace(/\s+/g, "_");
     const limit = Number(searchParams.get("limit") ?? 0);
 
     let query = supabase
@@ -16,6 +21,10 @@ export async function GET(request: NextRequest) {
 
     if (featuredOnly) {
       query = query.eq("is_featured", true);
+    }
+
+    if (category) {
+      query = query.eq("category", category);
     }
 
     if (Number.isFinite(limit) && limit > 0) {

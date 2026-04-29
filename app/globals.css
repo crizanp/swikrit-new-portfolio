@@ -22,8 +22,8 @@
   --destructive-foreground: 0 0% 98%;
   --border: 0 0% 10%;
   --input: 0 0% 10%;
-  --ring: 45 68% 60%;
-  --brand: 45 68% 60%;
+  --ring: 264 86% 68%;
+  --brand: 264 86% 68%;
   --radius: 0.95rem;
 }
 
@@ -47,8 +47,8 @@
   --destructive-foreground: 0 0% 98%;
   --border: 0 0% 90%;
   --input: 0 0% 90%;
-  --ring: 47 58% 46%;
-  --brand: 47 58% 46%;
+  --ring: 262 83% 58%;
+  --brand: 262 83% 58%;
 }
 
 @layer base {
@@ -59,6 +59,15 @@
   html,
   body {
     min-height: 100%;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--brand));
+    outline-offset: 3px;
   }
 
   body {
@@ -103,6 +112,17 @@
   .animate-shimmer {
     animation: shimmer 2.2s linear infinite;
   }
+
+  .section-reveal {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .section-reveal-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 @keyframes shimmer {
@@ -122,5 +142,18 @@
   textarea,
   select {
     cursor: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .section-reveal,
+  .section-reveal-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

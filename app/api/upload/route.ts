@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { uploadFile, type SupabaseStorageBucket } from "@/lib/supabase/storage";
 
 const allowedBuckets = new Set([
   "portfolio-videos",
@@ -19,42 +20,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = (await request.json()) as {
-      bucket?: string;
-      path?: string;
-    };
+    const bucket = request.nextUrl.searchParams.get("bucket") ?? "";
 
-    if (!payload.bucket || !payload.path) {
+    if (!bucket) {
       return NextResponse.json(
-        { error: "Bucket and path are required." },
+        { error: "Bucket query parameter is required." },
         { status: 400 }
       );
     }
 
-    if (!allowedBuckets.has(payload.bucket)) {
+    if (!allowedBuckets.has(bucket)) {
       return NextResponse.json(
         { error: "Bucket is not allowed." },
         { status: 400 }
       );
     }
 
-    if (payload.path.includes("..")) {
+    const formData = await request.formData();
+    const file = formData.get("file");
+    const rawPath = (formData.get("path") as string | null) ?? "";
+
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: "File is required." }, { status: 400 });
+    }
+
+    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+    const path = rawPath || `${Date.now()}-${safeFileName}`;
+
+    if (path.includes("..")) {
       return NextResponse.json({ error: "Invalid path." }, { status: 400 });
     }
 
-    const { data, error } = await supabase.storage
-      .from(payload.bucket)
-      .createSignedUploadUrl(payload.path);
+    const publicUrl = await uploadFile(bucket as SupabaseStorageBucket, path, file);
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ data }, { status: 200 });
-  } catch {
     return NextResponse.json(
-      { error: "Unable to create upload url." },
-      { status: 500 }
+      {
+        url: publicUrl,
+        data: {
+          bucket,
+          path,
+          publicUrl,
+        },
+      },
+      { status: 200 }
     );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to upload file.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -16,7 +16,7 @@ const buttonVariants = cva(
         outline:
           "border border-border bg-transparent hover:bg-secondary/70 hover:text-foreground",
         brand:
-          "bg-brand text-black hover:bg-brand/90 shadow-[0_10px_30px_-12px_hsl(var(--brand)/0.5)]",
+          "bg-brand text-white hover:bg-brand/90 shadow-[0_10px_30px_-12px_hsl(var(--brand)/0.5)]",
       },
       size: {
         default: "h-10 px-4 py-2",

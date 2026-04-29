@@ -56,6 +56,9 @@ export interface BlogPost {
   cover_image: string | null;
   tags: string[] | null;
   is_published: boolean | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  read_time: number | null;
   published_at: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -82,6 +85,7 @@ export interface SocialPost {
   thumbnail_url: string | null;
   likes_count: number | null;
   is_featured: boolean | null;
+  display_order: number | null;
   posted_at: string | null;
 }
 

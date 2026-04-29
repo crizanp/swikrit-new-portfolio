@@ -1,0 +1,99 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
+
+export async function GET(_request: NextRequest, { params }: RouteParams) {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("portfolio_items")
+      .select("*")
+      .eq("id", params.id)
+      .maybeSingle();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: "Portfolio item not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({ data }, { status: 200 });
+  } catch {
+    return NextResponse.json({ error: "Unable to fetch portfolio item." }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest, { params }: RouteParams) {
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const payload = (await request.json()) as {
+      title?: string;
+      description?: string;
+      category?: string;
+      client?: string;
+      thumbnail_url?: string;
+      video_url?: string;
+      video_embed?: string;
+      tags?: string[];
+      is_featured?: boolean;
+      display_order?: number;
+    };
+
+    const { data, error } = await supabase
+      .from("portfolio_items")
+      .update(payload)
+      .eq("id", params.id)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: "Portfolio item not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({ data }, { status: 200 });
+  } catch {
+    return NextResponse.json({ error: "Unable to update portfolio item." }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { error } = await supabase.from("portfolio_items").delete().eq("id", params.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch {
+    return NextResponse.json({ error: "Unable to delete portfolio item." }, { status: 500 });
+  }
+}
