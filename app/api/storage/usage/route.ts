@@ -1,17 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdminAuth } from "@/lib/admin-auth/server";
 import { createClient } from "@/lib/supabase/server";
 
 const buckets = ["portfolio-images", "portfolio-videos", "blog-images", "avatars"];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const unauthorized = await requireAdminAuth(request, supabase);
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (unauthorized) {
+      return unauthorized;
     }
 
     const usage = await Promise.all(

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
-import { createClient } from "@/lib/supabase/client";
 
 export default function AdminSectionLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -22,16 +21,29 @@ export default function AdminSectionLayout({ children }: { children: ReactNode }
         return;
       }
 
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      let sessionResponse: Response;
+
+      try {
+        sessionResponse = await fetch("/api/admin/session", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+        });
+      } catch {
+        if (!mounted) {
+          return;
+        }
+
+        const params = new URLSearchParams({ next: pathname || "/admin/dashboard" });
+        router.replace(`/admin/login?${params.toString()}`);
+        return;
+      }
 
       if (!mounted) {
         return;
       }
 
-      if (!session) {
+      if (!sessionResponse.ok) {
         const params = new URLSearchParams({ next: pathname || "/admin/dashboard" });
         router.replace(`/admin/login?${params.toString()}`);
         return;

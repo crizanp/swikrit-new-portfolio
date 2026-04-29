@@ -2,10 +2,13 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+
+function mapLoginErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unable to sign in.";
+}
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("swikritpokhrel01@gmail.com");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,11 +20,16 @@ export default function AdminLoginPage() {
     setIsSubmitting(true);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-      if (error) {
-        throw error;
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Unable to sign in.");
       }
 
       const params = new URLSearchParams(window.location.search);
@@ -29,7 +37,7 @@ export default function AdminLoginPage() {
       router.push(nextPath);
       router.refresh();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Unable to sign in.");
+      setNotice(mapLoginErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -37,14 +45,14 @@ export default function AdminLoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-16">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(232,197,71,0.22),_transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_hsl(var(--brand)/0.25),_transparent_45%)]" />
 
       <form
         onSubmit={onSubmit}
-        className="relative z-10 w-full max-w-md space-y-4 rounded-2xl border border-[#e8c547]/25 bg-zinc-950/90 p-6 text-zinc-100 shadow-2xl"
+        className="relative z-10 w-full max-w-md space-y-4 rounded-2xl border border-brand/25 bg-zinc-950/90 p-6 text-zinc-100 shadow-2xl"
       >
         <div className="space-y-1">
-          <p className="text-sm uppercase tracking-[0.16em] text-[#e8c547]">Admin</p>
+          <p className="text-sm uppercase tracking-[0.16em] text-brand">Admin</p>
           <h1 className="text-2xl font-semibold">Sign in to dashboard</h1>
           <p className="text-sm text-zinc-400">Access portfolio management and analytics tools.</p>
         </div>
@@ -82,7 +90,7 @@ export default function AdminLoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-md bg-[#e8c547] px-3 py-2 text-sm font-medium text-black disabled:opacity-70"
+          className="w-full rounded-md bg-brand px-3 py-2 text-sm font-medium text-black disabled:opacity-70"
         >
           {isSubmitting ? "Signing in..." : "Sign In"}
         </button>

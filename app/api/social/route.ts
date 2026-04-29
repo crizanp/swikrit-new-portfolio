@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdminAuth } from "@/lib/admin-auth/server";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -32,12 +33,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const unauthorized = await requireAdminAuth(request, supabase);
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (unauthorized) {
+      return unauthorized;
     }
 
     const payload = (await request.json()) as {
@@ -88,12 +87,10 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const unauthorized = await requireAdminAuth(request, supabase);
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (unauthorized) {
+      return unauthorized;
     }
 
     const payload = (await request.json()) as {
@@ -156,12 +153,10 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const unauthorized = await requireAdminAuth(request, supabase);
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (unauthorized) {
+      return unauthorized;
     }
 
     const payload = (await request.json()) as { id?: string };

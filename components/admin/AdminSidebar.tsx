@@ -43,7 +43,10 @@ export function AdminSidebar() {
 
     try {
       const supabase = createClient();
-      await supabase.auth.signOut();
+      await Promise.allSettled([
+        fetch("/api/admin/logout", { method: "POST" }),
+        supabase.auth.signOut(),
+      ]);
       router.replace("/admin/login");
       router.refresh();
     } finally {

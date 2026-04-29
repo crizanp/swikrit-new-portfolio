@@ -11,7 +11,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
       <ScrollProgress />
       <SectionReveal />
       <Navbar />
-      <main id="main-content" className="flex-1 space-y-20 pb-16">
+      <main id="main-content" className="flex-1 pb-16">
         {children}
       </main>
       <Footer />

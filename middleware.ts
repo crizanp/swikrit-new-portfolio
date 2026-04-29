@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ADMIN_SESSION_COOKIE, isValidAdminSessionToken } from "@/lib/admin-auth/shared";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
@@ -39,6 +40,12 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getSession();
 
   if (!session) {
+    const adminSessionToken = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+
+    if (isValidAdminSessionToken(adminSessionToken)) {
+      return response;
+    }
+
     const redirectUrl = new URL("/admin/login", request.url);
     redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);

@@ -162,14 +162,11 @@ export function SettingsManager({
     setDangerNotice(null);
 
     try {
+      await parseResponse(await fetch("/api/admin/logout", { method: "POST" }));
+
       const supabase = createClient();
-      const { error } = await supabase.auth.signOut({ scope: "global" });
+      await supabase.auth.signOut({ scope: "global" });
 
-      if (error) {
-        throw error;
-      }
-
-      setDangerNotice("All sessions have been logged out.");
       window.location.href = "/admin/login";
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to sign out all sessions.";

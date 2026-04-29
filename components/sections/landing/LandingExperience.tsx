@@ -466,7 +466,7 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
     <div className="relative" data-cursor-tone="dark">
       <section
         ref={heroSectionRef}
-        className="relative isolate overflow-hidden pt-14 sm:pt-20"
+        className="relative isolate flex min-h-[calc(100svh-5rem)] items-center overflow-hidden py-4 sm:py-6"
         data-cursor-tone="dark"
       >
         <HeroBg
@@ -475,8 +475,8 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
         />
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_8%,hsl(var(--brand)/0.24),transparent_34%),radial-gradient(circle_at_85%_15%,hsl(var(--brand)/0.12),transparent_28%),linear-gradient(180deg,hsl(var(--surface))_0%,hsl(var(--background))_48%)]" />
 
-        <div className="container pb-20">
-          <div className="mx-auto max-w-5xl rounded-[2rem] border border-border/70 bg-black/45 px-6 py-10 shadow-[0_0_0_1px_hsl(var(--border))_inset,0_30px_90px_-45px_hsl(var(--brand)/0.45)] backdrop-blur-xl sm:px-10 sm:py-14">
+        <div className="container py-4 sm:py-6">
+          <div className="mx-auto max-w-5xl rounded-[2rem] border border-border/70 bg-black/45 px-5 py-8 shadow-[0_0_0_1px_hsl(var(--border))_inset,0_30px_90px_-45px_hsl(var(--brand)/0.45)] backdrop-blur-xl sm:px-8 sm:py-10 lg:px-10 lg:py-12">
             <div className="hero-meta mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
@@ -488,13 +488,13 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
             <div className="space-y-2">
               <h1
                 ref={swikritRef}
-                className="font-heading text-5xl font-bold uppercase tracking-[0.12em] sm:text-7xl"
+                className="font-heading text-4xl font-bold uppercase tracking-[0.12em] sm:text-6xl lg:text-7xl"
               >
                 SWIKRIT
               </h1>
               <h1
                 ref={pokhrelRef}
-                className="font-heading text-5xl font-bold uppercase tracking-[0.12em] text-brand sm:text-7xl"
+                className="font-heading text-4xl font-bold uppercase tracking-[0.12em] text-brand sm:text-6xl lg:text-7xl"
               >
                 POKHREL
               </h1>
@@ -514,7 +514,7 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
               </span>
             </div>
 
-            <div className="hero-meta mt-9 grid gap-3 sm:grid-cols-3">
+            <div className="hero-meta mt-7 grid gap-3 sm:grid-cols-3">
               {heroStats.map((stat, index) => (
                 <div
                   key={stat.label}
@@ -537,7 +537,7 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
               ))}
             </div>
 
-            <div className="hero-meta mt-9 flex flex-wrap gap-3">
+            <div className="hero-meta mt-7 flex flex-wrap gap-3">
               <MagneticButton href="/work" variant="brand" size="lg">
                 My Work
               </MagneticButton>
@@ -549,7 +549,7 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
 
           <div
             ref={scrollIndicatorRef}
-            className="mx-auto mt-8 flex w-fit flex-col items-center gap-2 text-xs uppercase tracking-[0.12em] text-muted-foreground"
+            className="mx-auto mt-5 hidden w-fit flex-col items-center gap-2 text-xs uppercase tracking-[0.12em] text-muted-foreground 2xl:flex"
           >
             Scroll
             <ArrowDown className="h-4 w-4" />

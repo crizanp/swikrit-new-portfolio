@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdminAuth } from "@/lib/admin-auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFile, type SupabaseStorageBucket } from "@/lib/supabase/storage";
 
@@ -12,12 +13,10 @@ const allowedBuckets = new Set([
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const unauthorized = await requireAdminAuth(request, supabase);
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (unauthorized) {
+      return unauthorized;
     }
 
     const bucket = request.nextUrl.searchParams.get("bucket") ?? "";
