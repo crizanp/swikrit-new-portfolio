@@ -7,7 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import { Badge } from "@/components/ui/badge";
+import { CollapsibleTagList } from "@/components/ui/collapsible-tag-list";
 import { Card, CardContent } from "@/components/ui/card";
 import { getBlogPostBySlug, getRelatedBlogPosts } from "@/lib/data";
 import { siteConfig } from "@/lib/constants";
@@ -102,13 +102,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <JsonLd data={breadcrumbSchema} />
       <JsonLd data={blogPostingSchema} />
       <section className="container space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {(post.tags ?? []).map((tag) => (
-            <Badge key={`${post.id}-${tag}`} variant="outline">
-              {tag}
-            </Badge>
-          ))}
-        </div>
+        <CollapsibleTagList tags={post.tags} maxVisible={5} keyPrefix={`${post.id}-header`} />
         <h1 className="max-w-4xl text-4xl font-bold sm:text-5xl">{post.title}</h1>
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
           <p>{formatDate(post.published_at ?? post.created_at)}</p>

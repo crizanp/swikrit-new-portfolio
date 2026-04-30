@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Play, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CollapsibleTagList } from "@/components/ui/collapsible-tag-list";
 import {
   resolvePortfolioEmbedUrl,
   resolvePortfolioThumbnailUrl,
@@ -98,7 +99,7 @@ export function WorkPortfolioClient({ items, activeCategory }: WorkPortfolioClie
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 pb-5">
         {categories.map((category) => {
           const isActive =
             (selectedCategory || "all") === category.value ||
@@ -178,16 +179,7 @@ export function WorkPortfolioClient({ items, activeCategory }: WorkPortfolioClie
                   ) : null}
                   <h3 className="text-lg font-semibold">{item.title}</h3>
                   <p className="text-sm text-muted-foreground">{item.client ?? "Independent project"}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {(item.tags ?? []).map((tag) => (
-                      <span
-                        key={`${item.id}-${tag}`}
-                        className="rounded-full border border-border/80 px-2 py-1 text-xs text-muted-foreground"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  <CollapsibleTagList tags={item.tags} maxVisible={3} keyPrefix={`${item.id}-card`} />
 
                   <button
                     type="button"
@@ -253,12 +245,13 @@ export function WorkPortfolioClient({ items, activeCategory }: WorkPortfolioClie
 
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">Client: {selected.client ?? "N/A"}</Badge>
-                {(selected.tags ?? []).map((tag) => (
-                  <Badge key={`modal-${selected.id}-${tag}`} variant="outline">
-                    {tag}
-                  </Badge>
-                ))}
               </div>
+              <CollapsibleTagList
+                tags={selected.tags}
+                maxVisible={5}
+                keyPrefix={`modal-${selected.id}`}
+                tagClassName="bg-background"
+              />
             </div>
           </div>
         </div>

@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ChevronUp, MoreHorizontal, Search } from "lucide-react";
+import { CollapsibleTagList } from "@/components/ui/collapsible-tag-list";
 import { Input } from "@/components/ui/input";
 import type { BlogPost } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
@@ -13,9 +13,12 @@ interface BlogListingClientProps {
   posts: BlogPost[];
 }
 
+const MAX_VISIBLE_FILTER_TAGS = 8;
+
 export function BlogListingClient({ posts }: BlogListingClientProps) {
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState("all");
+  const [showAllTagFilters, setShowAllTagFilters] = useState(false);
 
   const tags = useMemo(() => {
     const allTags = new Set<string>();
@@ -25,6 +28,32 @@ export function BlogListingClient({ posts }: BlogListingClientProps) {
 
     return ["all", ...Array.from(allTags).sort((a, b) => a.localeCompare(b))];
   }, [posts]);
+
+  const collapsedFilterTags = useMemo(() => {
+    const firstBatch = tags.slice(0, MAX_VISIBLE_FILTER_TAGS);
+
+    if (
+      tags.length <= MAX_VISIBLE_FILTER_TAGS ||
+      activeTag === "all" ||
+      firstBatch.includes(activeTag)
+    ) {
+      return firstBatch;
+    }
+
+    const next = [...firstBatch];
+
+    if (next.length < MAX_VISIBLE_FILTER_TAGS) {
+      next.push(activeTag);
+    } else {
+      next[next.length - 1] = activeTag;
+    }
+
+    return Array.from(new Set(next));
+  }, [activeTag, tags]);
+
+  const showFilterToggle = tags.length > MAX_VISIBLE_FILTER_TAGS;
+  const visibleFilterTags = showAllTagFilters ? tags : collapsedFilterTags;
+  const hiddenTagCount = Math.max(0, tags.length - collapsedFilterTags.length);
 
   const filteredPosts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -70,7 +99,7 @@ export function BlogListingClient({ posts }: BlogListingClientProps) {
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">Tags</p>
           <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => {
+            {visibleFilterTags.map((tag) => {
               const active = tag === activeTag;
               return (
                 <button
@@ -87,6 +116,22 @@ export function BlogListingClient({ posts }: BlogListingClientProps) {
                 </button>
               );
             })}
+
+            {showFilterToggle ? (
+              <button
+                type="button"
+                onClick={() => setShowAllTagFilters((current) => !current)}
+                className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+                aria-expanded={showAllTagFilters}
+              >
+                {showAllTagFilters ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                )}
+                {showAllTagFilters ? "Show fewer" : `+${hiddenTagCount} more`}
+              </button>
+            ) : null}
           </div>
         </div>
       </aside>
@@ -112,13 +157,7 @@ export function BlogListingClient({ posts }: BlogListingClientProps) {
                 ) : null}
               </div>
               <div className="space-y-3 p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  {(post.tags ?? []).map((tag) => (
-                    <Badge key={`${post.id}-${tag}`} variant="outline">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
+                <CollapsibleTagList tags={post.tags} maxVisible={3} keyPrefix={`${post.id}-card`} />
                 <h3 className="line-clamp-2 text-lg font-semibold">{post.title}</h3>
                 <p className="line-clamp-3 text-sm text-muted-foreground">
                   {post.excerpt ?? "No excerpt available."}

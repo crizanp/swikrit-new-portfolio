@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { CollapsibleTagList } from "@/components/ui/collapsible-tag-list";
 import { siteConfig } from "@/lib/constants";
 import { getPortfolioItemById } from "@/lib/data";
 import {
@@ -104,13 +105,14 @@ export default async function WorkItemPage({ params }: WorkItemPageProps) {
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>Client: {item.client ?? "Independent"}</span>
-          {(item.tags ?? []).map((tag) => (
-            <span key={`${item.id}-${tag}`} className="rounded-full border border-border/70 px-2 py-1 text-xs">
-              {tag}
-            </span>
-          ))}
+        <div className="space-y-2 text-sm text-muted-foreground">
+          <p>Client: {item.client ?? "Independent"}</p>
+          <CollapsibleTagList
+            tags={item.tags}
+            maxVisible={5}
+            keyPrefix={`${item.id}-detail`}
+            tagClassName="border-border/70"
+          />
         </div>
 
         <Link href="/work" className="inline-flex text-sm font-medium text-brand">

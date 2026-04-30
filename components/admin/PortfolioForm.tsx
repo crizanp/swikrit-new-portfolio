@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { PortfolioItem } from "@/lib/types";
 import { FileUploader } from "@/components/admin/FileUploader";
@@ -55,6 +55,20 @@ export function PortfolioForm({ initialValue, onCancel, onSubmit }: PortfolioFor
   const [displayOrder, setDisplayOrder] = useState(initialValue?.display_order ?? 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTitle(initialValue?.title ?? "");
+    setDescription(initialValue?.description ?? "");
+    setCategory(initialValue?.category ?? "commercial");
+    setClient(initialValue?.client ?? "");
+    setThumbnailUrl(initialValue?.thumbnail_url ?? "");
+    setVideoUrl(initialValue?.video_url ?? "");
+    setVideoEmbed(initialValue?.video_embed ?? "");
+    setTagsInput(normalizeTags(initialValue?.tags));
+    setIsFeatured(Boolean(initialValue?.is_featured));
+    setDisplayOrder(initialValue?.display_order ?? 0);
+    setError(null);
+  }, [initialValue]);
 
   const parsedTags = useMemo(
     () =>
