@@ -20,15 +20,15 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/75 backdrop-blur-xl">
-      <div className="container flex h-20 items-center justify-between">
+      <div className="container flex h-16 items-center justify-between sm:h-20">
         <Link href="/" className="group inline-flex items-center gap-2">
-          <span className="font-heading text-sm font-bold tracking-[0.2em] text-foreground sm:text-base">
+          <span className="font-heading text-xs font-bold tracking-[0.14em] text-foreground sm:text-base sm:tracking-[0.2em]">
             SWIKRIT POKHREL
           </span>
           <span className="h-2 w-2 rounded-full bg-brand shadow-[0_0_25px_hsl(var(--brand)/0.8)]" />
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden items-center gap-6 lg:flex">
           {navigationLinks.map((link) => {
             const active = pathname === link.href;
             return (
@@ -46,7 +46,7 @@ export function Navbar() {
           })}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
          
           <ThemeToggle />
           <Button asChild variant="brand">
@@ -54,7 +54,7 @@ export function Navbar() {
           </Button>
         </div>
 
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <ThemeToggle />
           <Button
             variant="ghost"
@@ -75,7 +75,7 @@ export function Navbar() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -16, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-border bg-background/95 px-4 py-5 backdrop-blur-xl md:hidden"
+            className="border-t border-border bg-background/95 px-4 py-5 backdrop-blur-xl lg:hidden"
           >
             <div className="space-y-3">
               {navigationLinks.map((link) => (

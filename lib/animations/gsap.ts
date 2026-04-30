@@ -66,7 +66,7 @@ export function splitTextWords(element: HTMLElement) {
       (word) =>
         `<span class="inline-block overflow-hidden"><span data-split-word class="inline-block will-change-transform">${word}</span></span>`
     )
-    .join('<span class="inline-block">&nbsp;</span>');
+    .join(" ");
 
   return Array.from(
     element.querySelectorAll("[data-split-word]")

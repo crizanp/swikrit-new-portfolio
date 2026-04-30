@@ -6,7 +6,7 @@ import { ScrollProgress } from "@/components/layout/ScrollProgress";
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-screen flex-col">
+    <div className="relative flex min-h-screen flex-col overflow-x-clip">
       <ScrollProgress />
       <Navbar />
       <main id="main-content" className="flex-1 pb-16">
