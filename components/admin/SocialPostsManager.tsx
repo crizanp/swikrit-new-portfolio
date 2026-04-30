@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import type { SocialPost } from "@/lib/types";
 import { ConfirmModal } from "@/components/admin/ConfirmModal";
 import { DrawerForm } from "@/components/admin/DrawerForm";
@@ -178,7 +178,10 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
   const [deleteTarget, setDeleteTarget] = useState<SocialPost | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tableError, setTableError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor));
 
   const orderedPosts = useMemo(
@@ -187,9 +190,18 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
   );
 
   async function refreshPosts() {
-    const response = await fetch("/api/social", { cache: "no-store" });
-    const data = await parseResponse<SocialPost[]>(response);
-    setPosts(data ?? []);
+    setIsRefreshing(true);
+
+    try {
+      const response = await fetch("/api/social", { cache: "no-store" });
+      const data = await parseResponse<SocialPost[]>(response);
+      setPosts(data ?? []);
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to refresh social posts.";
+      setTableError(message);
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
   function openCreate() {
@@ -214,6 +226,8 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
 
     setIsSubmitting(true);
     setError(null);
+    setTableError(null);
+    setNotice(null);
 
     try {
       const payload = {
@@ -245,6 +259,7 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
 
       setDrawerOpen(false);
       await refreshPosts();
+      setNotice(editingPost ? "Social post updated." : "Social post created.");
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Unable to save social post.";
       setError(message);
@@ -255,6 +270,8 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
 
   async function deletePost(post: SocialPost) {
     setIsDeleting(true);
+    setTableError(null);
+    setNotice(null);
 
     try {
       const response = await fetch("/api/social", {
@@ -265,22 +282,34 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
       await parseResponse(response);
       setDeleteTarget(null);
       await refreshPosts();
+      setNotice("Social post deleted.");
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to delete social post.";
+      setTableError(message);
     } finally {
       setIsDeleting(false);
     }
   }
 
   async function persistOrder(nextPosts: SocialPost[]) {
-    await Promise.all(
-      nextPosts.map(async (post, index) => {
-        const response = await fetch("/api/social", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: post.id, display_order: index }),
-        });
-        await parseResponse(response);
-      })
-    );
+    setTableError(null);
+
+    try {
+      await Promise.all(
+        nextPosts.map(async (post, index) => {
+          const response = await fetch("/api/social", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: post.id, display_order: index }),
+          });
+          await parseResponse(response);
+        })
+      );
+      setNotice("Social post order updated.");
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to reorder social posts.";
+      setTableError(message);
+    }
   }
 
   async function onDragEnd(event: DragEndEvent) {
@@ -321,6 +350,16 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
           New Social Post
         </button>
       </div>
+
+      {isRefreshing ? (
+        <p className="inline-flex items-center gap-2 text-sm text-zinc-300">
+          <Loader2 className="h-4 w-4 animate-spin text-brand" />
+          Refreshing social posts...
+        </p>
+      ) : null}
+
+      {notice ? <p className="text-sm text-emerald-300">{notice}</p> : null}
+      {tableError ? <p className="text-sm text-rose-300">{tableError}</p> : null}
 
       <p className="rounded-lg border border-[#e8c547]/30 bg-[#e8c547]/10 px-3 py-2 text-sm text-[#e8c547]">
         Preview tip: use <strong>Post URL</strong> for direct links and <strong>Embed Code</strong> when platform widgets are required.

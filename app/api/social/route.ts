@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
+import { fallbackSocialPosts } from "@/lib/constants";
+import {
+  isSchemaNotReadyError,
+  schemaNotReadyWriteResponse,
+} from "@/lib/supabase/error-utils";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -15,12 +20,20 @@ export async function GET() {
       return NextResponse.json({ data: orderedQuery.data ?? [] }, { status: 200 });
     }
 
+    if (isSchemaNotReadyError(orderedQuery.error)) {
+      return NextResponse.json({ data: fallbackSocialPosts }, { status: 200 });
+    }
+
     const { data, error } = await supabase
       .from("social_posts")
       .select("*")
       .order("posted_at", { ascending: false });
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return NextResponse.json({ data: fallbackSocialPosts }, { status: 200 });
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -75,6 +88,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("social posts");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -137,6 +154,10 @@ export async function PUT(request: NextRequest) {
     }
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("social posts");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -168,6 +189,10 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase.from("social_posts").delete().eq("id", payload.id);
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("social posts");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
+import { fallbackBlogs } from "@/lib/constants";
+import {
+  isSchemaNotReadyError,
+  schemaNotReadyWriteResponse,
+} from "@/lib/supabase/error-utils";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -20,6 +25,13 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        const fallback = publishedOnly
+          ? fallbackBlogs.filter((post) => post.is_published)
+          : fallbackBlogs;
+        return NextResponse.json({ data: fallback }, { status: 200 });
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -69,6 +81,10 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("blog posts");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -118,6 +134,10 @@ export async function PUT(request: NextRequest) {
       .maybeSingle();
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("blog posts");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -149,6 +169,10 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase.from("blog_posts").delete().eq("id", payload.id);
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("blog posts");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

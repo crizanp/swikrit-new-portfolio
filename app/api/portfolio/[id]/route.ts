@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
+import { fallbackPortfolio } from "@/lib/constants";
+import {
+  isSchemaNotReadyError,
+  schemaNotReadyWriteResponse,
+} from "@/lib/supabase/error-utils";
 import { createClient } from "@/lib/supabase/server";
 
 interface RouteParams {
@@ -18,6 +23,16 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       .maybeSingle();
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        const fallback = fallbackPortfolio.find((item) => item.id === params.id) ?? null;
+
+        if (!fallback) {
+          return NextResponse.json({ error: "Portfolio item not found." }, { status: 404 });
+        }
+
+        return NextResponse.json({ data: fallback }, { status: 200 });
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -61,6 +76,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .maybeSingle();
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("portfolio items");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -86,6 +105,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { error } = await supabase.from("portfolio_items").delete().eq("id", params.id);
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("portfolio items");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

@@ -107,10 +107,10 @@ CREATE POLICY "public_read_social" ON social_posts FOR SELECT USING (true);
 CREATE POLICY "public_read_stats" ON site_stats FOR SELECT USING (true);
 CREATE POLICY "public_insert_inquiry" ON contact_inquiries FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "admin_all_portfolio" ON portfolio_items FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "admin_all_services" ON services FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "admin_all_testimonials" ON testimonials FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "admin_all_blog" ON blog_posts FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "admin_all_inquiries" ON contact_inquiries FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "admin_all_social" ON social_posts FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "admin_all_stats" ON site_stats FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "admin_all_portfolio" ON portfolio_items FOR ALL USING (auth.role() IN ('authenticated', 'anon'));
+CREATE POLICY "admin_all_services" ON services FOR ALL USING (auth.role() IN ('authenticated', 'anon'));
+CREATE POLICY "admin_all_testimonials" ON testimonials FOR ALL USING (auth.role() IN ('authenticated', 'anon'));
+CREATE POLICY "admin_all_blog" ON blog_posts FOR ALL USING (auth.role() IN ('authenticated', 'anon'));
+CREATE POLICY "admin_all_inquiries" ON contact_inquiries FOR ALL USING (auth.role() IN ('authenticated', 'anon'));
+CREATE POLICY "admin_all_social" ON social_posts FOR ALL USING (auth.role() IN ('authenticated', 'anon'));
+CREATE POLICY "admin_all_stats" ON site_stats FOR ALL USING (auth.role() IN ('authenticated', 'anon'));

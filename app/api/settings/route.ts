@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
+import {
+  isSchemaNotReadyError,
+  schemaNotReadyWriteResponse,
+} from "@/lib/supabase/error-utils";
 import { createClient } from "@/lib/supabase/server";
 
 type ProfileSettings = {
@@ -17,6 +21,21 @@ type SocialStatsSettings = {
   total_views_label?: string;
 };
 
+const defaultProfile: ProfileSettings = {
+  display_name: "Swikrit Pokhrel",
+  bio: "",
+};
+
+const defaultSocial: SocialStatsSettings = {
+  instagram_handle: "@swikritpokhrel",
+  instagram_followers: "24K+",
+  tiktok_handle: "@swikritpokhrel",
+  tiktok_followers: "18K+",
+  linkedin_handle: "swikrit-pokhrel",
+  linkedin_followers: "6K+",
+  total_views_label: "12M+",
+};
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createClient();
@@ -32,6 +51,18 @@ export async function GET(request: NextRequest) {
       .in("setting_key", ["profile", "social_stats"]);
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return NextResponse.json(
+          {
+            data: {
+              profile: defaultProfile,
+              social: defaultSocial,
+            },
+          },
+          { status: 200 }
+        );
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -43,17 +74,10 @@ export async function GET(request: NextRequest) {
       {
         data: {
           profile: (profileRow?.setting_value ?? {
-            display_name: "Swikrit Pokhrel",
-            bio: "",
+            ...defaultProfile,
           }) as ProfileSettings,
           social: (socialRow?.setting_value ?? {
-            instagram_handle: "@swikritpokhrel",
-            instagram_followers: "24K+",
-            tiktok_handle: "@swikritpokhrel",
-            tiktok_followers: "18K+",
-            linkedin_handle: "swikrit-pokhrel",
-            linkedin_followers: "6K+",
-            total_views_label: "12M+",
+            ...defaultSocial,
           }) as SocialStatsSettings,
         },
       },
@@ -114,6 +138,10 @@ export async function PUT(request: NextRequest) {
       .order("setting_key", { ascending: true });
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("site settings");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

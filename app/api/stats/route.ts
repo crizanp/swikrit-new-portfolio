@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
+import { fallbackStats } from "@/lib/constants";
+import {
+  isSchemaNotReadyError,
+  schemaNotReadyWriteResponse,
+} from "@/lib/supabase/error-utils";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -8,6 +13,15 @@ export async function GET() {
     const { data, error } = await supabase.from("site_stats").select("*");
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        const fallbackPayload = fallbackStats.reduce<Record<string, string>>((acc, stat) => {
+          acc[stat.stat_key] = stat.stat_value;
+          return acc;
+        }, {});
+
+        return NextResponse.json({ data: fallbackPayload }, { status: 200 });
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -58,6 +72,10 @@ export async function PUT(request: NextRequest) {
       .select("*");
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("site stats");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

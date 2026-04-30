@@ -73,7 +73,7 @@ export function CustomCursor() {
     <div
       ref={cursorRef}
       aria-hidden="true"
-      className="pointer-events-none fixed left-0 top-0 z-[130] h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand/70 bg-brand/20"
+      className="pointer-events-none fixed left-0 top-0 z-[240] h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand/70 bg-brand/20"
     />
   );
 }

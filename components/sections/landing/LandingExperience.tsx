@@ -159,12 +159,12 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
       .fromTo(
         swikrit,
         { x: -48, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.72, clearProps: "transform,opacity" }
+        { x: 0, opacity: 1, duration: 0.72 }
       )
       .fromTo(
         pokhrel,
         { x: 48, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.72, clearProps: "transform,opacity" },
+        { x: 0, opacity: 1, duration: 0.72 },
         0.05
       )
       .fromTo(
@@ -175,7 +175,6 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
           opacity: 1,
           duration: 0.45,
           stagger: 0.08,
-          clearProps: "transform,opacity",
         },
         0.24
       );
@@ -239,9 +238,8 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
 
       subtitleText.textContent = subtitle;
       subtitleCursor.style.opacity = "1";
-      gsap.set([swikrit, pokhrel, ...heroMetaItems], {
-        clearProps: "transform,opacity",
-      });
+      gsap.set([swikrit, pokhrel], { x: 0, opacity: 1 });
+      gsap.set(heroMetaItems, { y: 0, opacity: 1 });
 
       counterNodes.forEach((counter, index) => {
         if (counter) {
@@ -599,9 +597,9 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
             <div className="absolute inset-4 rounded-[1.4rem] border border-border/70 bg-gradient-to-br from-card via-surface to-black/90" />
             <div className="absolute inset-0 flex items-center justify-center text-center">
               <div className="space-y-2 px-6">
-                <p className="font-heading text-lg font-semibold text-brand">Photo Placeholder</p>
-                <p className="text-sm text-muted-foreground">
-                  Portrait / studio shot for Swikrit Pokhrel
+              <img src="https://i.postimg.cc/3x4fNFjP/swikrit.jpg" alt="Swikrit Pokhrel" className="mx-auto h-48 w-48 rounded-full object-cover" />
+                <p className="text-sm italic text-muted-foreground">
+                  &ldquo;A passionate video editor and motion designer with a knack for storytelling through visuals. With over 3 years of experience, I specialize in crafting dynamic edits and motion graphics that captivate audiences and elevate brands. My work is driven by a love for creativity, attention to detail, and a commitment to delivering high-quality content that resonates across platforms.&rdquo;
                 </p>
               </div>
             </div>

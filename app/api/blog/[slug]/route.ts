@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
+import { fallbackBlogs } from "@/lib/constants";
+import {
+  isSchemaNotReadyError,
+  schemaNotReadyWriteResponse,
+} from "@/lib/supabase/error-utils";
 import { createClient } from "@/lib/supabase/server";
 
 interface RouteParams {
@@ -26,6 +31,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await query.maybeSingle();
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        const fallback = fallbackBlogs.find((post) => {
+          if (post.slug !== params.slug) {
+            return false;
+          }
+
+          return publishedOnly ? post.is_published : true;
+        });
+
+        if (!fallback) {
+          return NextResponse.json({ error: "Blog post not found." }, { status: 404 });
+        }
+
+        return NextResponse.json({ data: fallback }, { status: 200 });
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -70,6 +91,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .maybeSingle();
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("blog posts");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -95,6 +120,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { error } = await supabase.from("blog_posts").delete().eq("slug", params.slug);
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("blog posts");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

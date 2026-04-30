@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import type { PortfolioItem } from "@/lib/types";
 import { ConfirmModal } from "@/components/admin/ConfirmModal";
 import { DrawerForm } from "@/components/admin/DrawerForm";
@@ -154,6 +154,9 @@ export function PortfolioManager({ initialItems }: PortfolioManagerProps) {
   const [confirmDelete, setConfirmDelete] = useState<PortfolioItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor));
 
   const allSelected = useMemo(
@@ -162,13 +165,22 @@ export function PortfolioManager({ initialItems }: PortfolioManagerProps) {
   );
 
   async function refreshItems() {
-    const response = await fetch("/api/portfolio?limit=200", { cache: "no-store" });
-    const data = await parseResponse<PortfolioItem[]>(response);
-    setItems(data ?? []);
-    setSelectedIds([]);
+    setIsRefreshing(true);
+
+    try {
+      const response = await fetch("/api/portfolio?limit=200", { cache: "no-store" });
+      const data = await parseResponse<PortfolioItem[]>(response);
+      setItems(data ?? []);
+      setSelectedIds([]);
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
   async function handleSubmit(values: PortfolioFormValues) {
+    setRequestError(null);
+    setNotice(null);
+
     if (editingItem) {
       const response = await fetch(`/api/portfolio/${editingItem.id}`, {
         method: "PUT",
@@ -188,16 +200,23 @@ export function PortfolioManager({ initialItems }: PortfolioManagerProps) {
     setIsDrawerOpen(false);
     setEditingItem(null);
     await refreshItems();
+    setNotice(editingItem ? "Portfolio item updated." : "Portfolio item created.");
   }
 
   async function handleDelete(item: PortfolioItem) {
     setIsDeleting(true);
+    setRequestError(null);
+    setNotice(null);
 
     try {
       const response = await fetch(`/api/portfolio/${item.id}`, { method: "DELETE" });
       await parseResponse(response);
       setConfirmDelete(null);
       await refreshItems();
+      setNotice("Portfolio item deleted.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to delete portfolio item.";
+      setRequestError(message);
     } finally {
       setIsDeleting(false);
     }
@@ -209,6 +228,8 @@ export function PortfolioManager({ initialItems }: PortfolioManagerProps) {
     }
 
     setIsBulkDeleting(true);
+    setRequestError(null);
+    setNotice(null);
 
     try {
       await Promise.all(
@@ -219,22 +240,34 @@ export function PortfolioManager({ initialItems }: PortfolioManagerProps) {
       );
 
       await refreshItems();
+      setNotice("Selected portfolio items deleted.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to bulk delete portfolio items.";
+      setRequestError(message);
     } finally {
       setIsBulkDeleting(false);
     }
   }
 
   async function persistOrder(nextItems: PortfolioItem[]) {
-    await Promise.all(
-      nextItems.map(async (item, index) => {
-        const response = await fetch(`/api/portfolio/${item.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ display_order: index }),
-        });
-        await parseResponse(response);
-      })
-    );
+    setRequestError(null);
+
+    try {
+      await Promise.all(
+        nextItems.map(async (item, index) => {
+          const response = await fetch(`/api/portfolio/${item.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ display_order: index }),
+          });
+          await parseResponse(response);
+        })
+      );
+      setNotice("Portfolio order updated.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update portfolio order.";
+      setRequestError(message);
+    }
   }
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -259,14 +292,23 @@ export function PortfolioManager({ initialItems }: PortfolioManagerProps) {
   }
 
   async function toggleFeatured(item: PortfolioItem) {
-    const response = await fetch(`/api/portfolio/${item.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_featured: !item.is_featured }),
-    });
+    setRequestError(null);
+    setNotice(null);
 
-    await parseResponse(response);
-    await refreshItems();
+    try {
+      const response = await fetch(`/api/portfolio/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_featured: !item.is_featured }),
+      });
+
+      await parseResponse(response);
+      await refreshItems();
+      setNotice("Portfolio item updated.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update portfolio item.";
+      setRequestError(message);
+    }
   }
 
   return (
@@ -303,6 +345,16 @@ export function PortfolioManager({ initialItems }: PortfolioManagerProps) {
           </button>
         </div>
       </div>
+
+      {isRefreshing ? (
+        <p className="inline-flex items-center gap-2 text-sm text-zinc-300">
+          <Loader2 className="h-4 w-4 animate-spin text-brand" />
+          Refreshing portfolio data...
+        </p>
+      ) : null}
+
+      {notice ? <p className="text-sm text-emerald-300">{notice}</p> : null}
+      {requestError ? <p className="text-sm text-rose-300">{requestError}</p> : null}
 
       <div className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950">
         <div className="overflow-x-auto">

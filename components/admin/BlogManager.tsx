@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import MDEditor from "@uiw/react-md-editor";
-import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import type { BlogPost } from "@/lib/types";
 import { ConfirmModal } from "@/components/admin/ConfirmModal";
 import { DrawerForm } from "@/components/admin/DrawerForm";
@@ -70,7 +70,10 @@ export function BlogManager({ initialPosts }: BlogManagerProps) {
   const [deleteTarget, setDeleteTarget] = useState<BlogPost | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tableError, setTableError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const sortedPosts = useMemo(
     () => [...posts].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")),
@@ -78,9 +81,18 @@ export function BlogManager({ initialPosts }: BlogManagerProps) {
   );
 
   async function refreshPosts() {
-    const response = await fetch("/api/blog?published=false", { cache: "no-store" });
-    const data = await parseResponse<BlogPost[]>(response);
-    setPosts(data ?? []);
+    setIsRefreshing(true);
+
+    try {
+      const response = await fetch("/api/blog?published=false", { cache: "no-store" });
+      const data = await parseResponse<BlogPost[]>(response);
+      setPosts(data ?? []);
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to refresh blog posts.";
+      setTableError(message);
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
   function openCreate() {
@@ -112,6 +124,8 @@ export function BlogManager({ initialPosts }: BlogManagerProps) {
 
     setIsSubmitting(true);
     setError(null);
+    setTableError(null);
+    setNotice(null);
 
     try {
       const payload = {
@@ -149,6 +163,7 @@ export function BlogManager({ initialPosts }: BlogManagerProps) {
 
       setDrawerOpen(false);
       await refreshPosts();
+      setNotice(editingPost ? "Blog post updated." : "Blog post created.");
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Unable to save post.";
       setError(message);
@@ -159,6 +174,8 @@ export function BlogManager({ initialPosts }: BlogManagerProps) {
 
   async function handleDelete(post: BlogPost) {
     setIsDeleting(true);
+    setTableError(null);
+    setNotice(null);
 
     try {
       const response = await fetch("/api/blog", {
@@ -169,25 +186,38 @@ export function BlogManager({ initialPosts }: BlogManagerProps) {
       await parseResponse(response);
       setDeleteTarget(null);
       await refreshPosts();
+      setNotice("Blog post deleted.");
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to delete post.";
+      setTableError(message);
     } finally {
       setIsDeleting(false);
     }
   }
 
   async function togglePublish(post: BlogPost) {
-    const nextPublished = !post.is_published;
-    const response = await fetch("/api/blog", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: post.id,
-        is_published: nextPublished,
-        published_at: nextPublished ? new Date().toISOString() : null,
-      }),
-    });
+    setTableError(null);
+    setNotice(null);
 
-    await parseResponse(response);
-    await refreshPosts();
+    try {
+      const nextPublished = !post.is_published;
+      const response = await fetch("/api/blog", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: post.id,
+          is_published: nextPublished,
+          published_at: nextPublished ? new Date().toISOString() : null,
+        }),
+      });
+
+      await parseResponse(response);
+      await refreshPosts();
+      setNotice(nextPublished ? "Post published." : "Post moved to draft.");
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to update publish state.";
+      setTableError(message);
+    }
   }
 
   return (
@@ -207,6 +237,16 @@ export function BlogManager({ initialPosts }: BlogManagerProps) {
           New Post
         </button>
       </div>
+
+      {isRefreshing ? (
+        <p className="inline-flex items-center gap-2 text-sm text-zinc-300">
+          <Loader2 className="h-4 w-4 animate-spin text-brand" />
+          Refreshing blog posts...
+        </p>
+      ) : null}
+
+      {notice ? <p className="text-sm text-emerald-300">{notice}</p> : null}
+      {tableError ? <p className="text-sm text-rose-300">{tableError}</p> : null}
 
       <div className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950">
         <div className="overflow-x-auto">

@@ -139,10 +139,9 @@ export default async function AboutPage() {
 
         <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-brand/25 via-background to-background p-2">
           <div className="relative aspect-[4/5] rounded-xl bg-black/20">
-            <Image
-              src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80"
+            <img
+              src="https://i.postimg.cc/5t219fvm/Untitled-design-(25).png"
               alt="Swikrit Pokhrel portrait"
-              fill
               sizes="(max-width: 1024px) 100vw, 40vw"
               className="rounded-xl object-cover"
             />

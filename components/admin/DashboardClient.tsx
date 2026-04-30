@@ -66,6 +66,8 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const [items, setItems] = useState(recentInquiries);
   const [isMutating, setIsMutating] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const totalTrendCount = useMemo(
     () => inquiryTrend.reduce((sum, bucket) => sum + bucket.count, 0),
@@ -74,6 +76,8 @@ export function DashboardClient({
 
   async function updateInquiryStatus(id: string, status: "read" | "archived") {
     setIsMutating(id);
+    setRequestError(null);
+    setNotice(null);
 
     try {
       const response = await fetch("/api/inquiries", {
@@ -90,6 +94,10 @@ export function DashboardClient({
       setItems((current) =>
         current.map((entry) => (entry.id === id ? { ...entry, status } : entry))
       );
+      setNotice(`Inquiry marked as ${status}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update inquiry.";
+      setRequestError(message);
     } finally {
       setIsMutating(null);
     }
@@ -97,6 +105,9 @@ export function DashboardClient({
 
   return (
     <div className="space-y-8">
+      {notice ? <p className="text-sm text-emerald-300">{notice}</p> : null}
+      {requestError ? <p className="text-sm text-rose-300">{requestError}</p> : null}
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatsCard title="Portfolio Items" value={metrics.portfolioCount} helperText="Total projects" />
         <StatsCard title="Total Views" value={metrics.totalViews.toLocaleString()} helperText="All portfolio views" />

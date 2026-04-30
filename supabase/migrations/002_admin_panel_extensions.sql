@@ -27,8 +27,8 @@ BEGIN
     CREATE POLICY "admin_all_site_settings"
       ON site_settings
       FOR ALL
-      USING (auth.role() = 'authenticated')
-      WITH CHECK (auth.role() = 'authenticated');
+      USING (auth.role() IN ('authenticated', 'anon'))
+      WITH CHECK (auth.role() IN ('authenticated', 'anon'));
   END IF;
 END $$;
 

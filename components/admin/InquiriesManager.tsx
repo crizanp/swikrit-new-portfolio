@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { Archive, ChevronDown, ChevronUp, FileDown, Mail, RefreshCw } from "lucide-react";
+import { Archive, ChevronDown, ChevronUp, FileDown, Loader2, Mail, RefreshCw } from "lucide-react";
 import type { ContactInquiry } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
@@ -82,6 +82,8 @@ export function InquiriesManager({ initialInquiries }: InquiriesManagerProps) {
   const [activeFilter, setActiveFilter] = useState<InquiryStatusFilter>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isMutatingId, setIsMutatingId] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const filteredInquiries = useMemo(() => {
     if (activeFilter === "all") {
@@ -93,6 +95,8 @@ export function InquiriesManager({ initialInquiries }: InquiriesManagerProps) {
 
   async function updateStatus(id: string, status: "read" | "replied" | "archived") {
     setIsMutatingId(id);
+    setRequestError(null);
+    setNotice(null);
 
     try {
       const response = await fetch("/api/inquiries", {
@@ -106,6 +110,10 @@ export function InquiriesManager({ initialInquiries }: InquiriesManagerProps) {
       setInquiries((current) =>
         current.map((inquiry) => (inquiry.id === id ? { ...inquiry, status } : inquiry))
       );
+      setNotice(`Inquiry marked as ${status}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update inquiry.";
+      setRequestError(message);
     } finally {
       setIsMutatingId(null);
     }
@@ -141,6 +149,16 @@ export function InquiriesManager({ initialInquiries }: InquiriesManagerProps) {
           Export CSV
         </button>
       </div>
+
+      {isMutatingId ? (
+        <p className="inline-flex items-center gap-2 text-sm text-zinc-300">
+          <Loader2 className="h-4 w-4 animate-spin text-brand" />
+          Updating inquiry...
+        </p>
+      ) : null}
+
+      {notice ? <p className="text-sm text-emerald-300">{notice}</p> : null}
+      {requestError ? <p className="text-sm text-rose-300">{requestError}</p> : null}
 
       <div className="flex flex-wrap gap-2">
         {statusFilters.map((filter) => {

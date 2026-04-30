@@ -32,7 +32,8 @@ VERCEL_PROJECT_ID=your_vercel_project_id
 
 1. Run SQL from `supabase/migrations/001_initial_schema.sql` in Supabase SQL editor.
 2. Run SQL from `supabase/migrations/002_admin_panel_extensions.sql` in Supabase SQL editor.
-3. Create these public storage buckets in Supabase Storage:
+3. If you already ran older migrations before this fix, run `supabase/migrations/003_fix_admin_rls_for_fallback_login.sql` as well.
+4. Create these public storage buckets in Supabase Storage:
    - `portfolio-videos`
    - `portfolio-images`
    - `blog-images`
@@ -40,9 +41,21 @@ VERCEL_PROJECT_ID=your_vercel_project_id
 
 ## Admin Login
 
-- Admin authentication uses Supabase Auth (`/admin/login`).
-- Create or invite admin users inside Supabase Authentication.
-- If email confirmation is enabled in Supabase Auth settings, the user must verify the email before dashboard login works.
+- Admin login supports direct credential auth at `/admin/login` using server-side env values:
+  - `ADMIN_LOGIN_EMAIL`
+  - `ADMIN_LOGIN_PASSWORD`
+  - `ADMIN_SESSION_TOKEN` (recommended to customize in production)
+- If those env vars are not set, the app falls back to local defaults defined in `lib/admin-auth/shared.ts`.
+- Supabase Auth sessions are still supported when available.
+
+## If You See Missing-Table Errors
+
+Errors like `Could not find the table ... in the schema cache` mean your Supabase project has not run migrations yet.
+
+1. Open Supabase SQL Editor for your project.
+2. Run `supabase/migrations/001_initial_schema.sql`.
+3. Run `supabase/migrations/002_admin_panel_extensions.sql`.
+4. Verify tables now exist: `portfolio_items`, `blog_posts`, `services`, `site_stats`, `social_posts`, `contact_inquiries`, `site_settings`.
 
 ## Development
 

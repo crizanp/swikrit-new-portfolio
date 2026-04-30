@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
+import {
+  isSchemaNotReadyError,
+  schemaNotReadyWriteResponse,
+} from "@/lib/supabase/error-utils";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -30,6 +34,10 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return NextResponse.json({ data: [] }, { status: 200 });
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -65,6 +73,10 @@ export async function PUT(request: NextRequest) {
       .maybeSingle();
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return schemaNotReadyWriteResponse("contact inquiries");
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

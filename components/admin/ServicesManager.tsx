@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Service } from "@/lib/types";
 import { ConfirmModal } from "@/components/admin/ConfirmModal";
 import { DrawerForm } from "@/components/admin/DrawerForm";
@@ -53,6 +53,9 @@ export function ServicesManager({ initialServices }: ServicesManagerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [tableError, setTableError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const sortedServices = useMemo(
     () => [...services].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)),
@@ -60,9 +63,18 @@ export function ServicesManager({ initialServices }: ServicesManagerProps) {
   );
 
   async function refreshServices() {
-    const response = await fetch("/api/services?active=false", { cache: "no-store" });
-    const data = await parseResponse<Service[]>(response);
-    setServices(data ?? []);
+    setIsRefreshing(true);
+
+    try {
+      const response = await fetch("/api/services?active=false", { cache: "no-store" });
+      const data = await parseResponse<Service[]>(response);
+      setServices(data ?? []);
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to refresh services.";
+      setTableError(message);
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
   function openCreate() {
@@ -87,6 +99,8 @@ export function ServicesManager({ initialServices }: ServicesManagerProps) {
 
     setIsSubmitting(true);
     setError(null);
+    setTableError(null);
+    setNotice(null);
 
     try {
       const payload = {
@@ -121,6 +135,7 @@ export function ServicesManager({ initialServices }: ServicesManagerProps) {
 
       setDrawerOpen(false);
       await refreshServices();
+      setNotice(editingService ? "Service updated." : "Service created.");
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Unable to save service.";
       setError(message);
@@ -131,6 +146,8 @@ export function ServicesManager({ initialServices }: ServicesManagerProps) {
 
   async function deleteService(service: Service) {
     setIsDeleting(true);
+    setTableError(null);
+    setNotice(null);
 
     try {
       const response = await fetch("/api/services", {
@@ -142,20 +159,33 @@ export function ServicesManager({ initialServices }: ServicesManagerProps) {
       await parseResponse(response);
       setDeleteTarget(null);
       await refreshServices();
+      setNotice("Service deleted.");
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to delete service.";
+      setTableError(message);
     } finally {
       setIsDeleting(false);
     }
   }
 
   async function toggleActive(service: Service) {
-    const response = await fetch("/api/services", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: service.id, is_active: !service.is_active }),
-    });
+    setTableError(null);
+    setNotice(null);
 
-    await parseResponse(response);
-    await refreshServices();
+    try {
+      const response = await fetch("/api/services", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: service.id, is_active: !service.is_active }),
+      });
+
+      await parseResponse(response);
+      await refreshServices();
+      setNotice(service.is_active ? "Service deactivated." : "Service activated.");
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to update service status.";
+      setTableError(message);
+    }
   }
 
   return (
@@ -175,6 +205,16 @@ export function ServicesManager({ initialServices }: ServicesManagerProps) {
           New Service
         </button>
       </div>
+
+      {isRefreshing ? (
+        <p className="inline-flex items-center gap-2 text-sm text-zinc-300">
+          <Loader2 className="h-4 w-4 animate-spin text-brand" />
+          Refreshing services...
+        </p>
+      ) : null}
+
+      {notice ? <p className="text-sm text-emerald-300">{notice}</p> : null}
+      {tableError ? <p className="text-sm text-rose-300">{tableError}</p> : null}
 
       <div className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950">
         <div className="overflow-x-auto">

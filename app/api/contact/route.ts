@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { isSchemaNotReadyError } from "@/lib/supabase/error-utils";
 import { createClient } from "@/lib/supabase/server";
 
 const contactSchema = z.object({
@@ -36,6 +37,17 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
+      if (isSchemaNotReadyError(error)) {
+        return NextResponse.json(
+          {
+            success: true,
+            warning:
+              "Database is not initialized yet, so inquiry was not stored. Run migrations to enable storage.",
+          },
+          { status: 202 }
+        );
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
