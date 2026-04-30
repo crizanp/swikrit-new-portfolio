@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { PortfolioItem } from "@/lib/types";
 import { FileUploader } from "@/components/admin/FileUploader";
+import { resolvePortfolioThumbnailUrl } from "@/lib/portfolio-media";
 
 type PortfolioFormValues = {
   title: string;
@@ -62,6 +64,32 @@ export function PortfolioForm({ initialValue, onCancel, onSubmit }: PortfolioFor
         .filter(Boolean),
     [tagsInput]
   );
+
+  const thumbnailPreview = useMemo(() => {
+    const customThumbnail = thumbnailUrl.trim();
+
+    if (customThumbnail) {
+      return {
+        url: customThumbnail,
+        source: "custom" as const,
+      };
+    }
+
+    const generatedThumbnail = resolvePortfolioThumbnailUrl({
+      thumbnail_url: null,
+      video_url: videoUrl,
+      video_embed: videoEmbed,
+    });
+
+    if (!generatedThumbnail) {
+      return null;
+    }
+
+    return {
+      url: generatedThumbnail,
+      source: "auto" as const,
+    };
+  }, [thumbnailUrl, videoUrl, videoEmbed]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -212,6 +240,34 @@ export function PortfolioForm({ initialValue, onCancel, onSubmit }: PortfolioFor
           accept="video/*"
           onChange={setVideoUrl}
         />
+      </div>
+
+      <div className="space-y-2 rounded-md border border-white/15 bg-zinc-950/70 p-3">
+        <p className="text-xs uppercase tracking-[0.1em] text-zinc-400">Thumbnail Preview</p>
+
+        {thumbnailPreview ? (
+          <>
+            <div className="relative h-44 w-full overflow-hidden rounded-md border border-white/15 bg-zinc-900">
+              <Image
+                src={thumbnailPreview.url}
+                alt="Portfolio thumbnail preview"
+                fill
+                sizes="(max-width: 768px) 100vw, 560px"
+                className="object-cover"
+              />
+            </div>
+
+            <p className="text-xs text-zinc-400">
+              {thumbnailPreview.source === "custom"
+                ? "Using custom thumbnail URL."
+                : "Auto-generated from current video URL/embed."}
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-zinc-500">
+            Type a YouTube, Vimeo, or Dailymotion video URL/embed to preview the thumbnail before saving.
+          </p>
+        )}
       </div>
 
       <label className="inline-flex items-center gap-2 text-sm text-zinc-200">

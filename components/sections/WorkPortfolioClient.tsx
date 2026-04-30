@@ -10,7 +10,7 @@ import {
   resolvePortfolioEmbedUrl,
   resolvePortfolioThumbnailUrl,
 } from "@/lib/portfolio-media";
-import { gsap, registerGsapPlugins } from "@/lib/animations/gsap";
+import { gsap } from "@/lib/animations/gsap";
 import type { PortfolioItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -62,36 +62,6 @@ export function WorkPortfolioClient({ items, activeCategory }: WorkPortfolioClie
 
     return items.filter((item) => normalizeCategory(item.category) === selectedCategory);
   }, [items, selectedCategory]);
-
-  useEffect(() => {
-    registerGsapPlugins();
-    const cards = cardRefs.current.filter(Boolean) as HTMLElement[];
-
-    if (cards.length === 0) {
-      return;
-    }
-
-    const tweens = cards.map((card) =>
-      gsap.fromTo(
-        card,
-        { y: 28, autoAlpha: 0 },
-        {
-          y: 0,
-          autoAlpha: 1,
-          duration: 0.65,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: card,
-            start: "top 88%",
-          },
-        }
-      )
-    );
-
-    return () => {
-      tweens.forEach((tween) => tween.kill());
-    };
-  }, [filteredItems]);
 
   useEffect(() => {
     if (!selected) {
@@ -183,6 +153,7 @@ export function WorkPortfolioClient({ items, activeCategory }: WorkPortfolioClie
                         src={thumbnailUrl}
                         alt={item.title}
                         fill
+                        priority={index < 2}
                         sizes="(max-width: 1280px) 100vw, 33vw"
                         className="object-cover transition duration-300 group-hover:scale-105"
                       />

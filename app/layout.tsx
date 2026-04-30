@@ -66,6 +66,13 @@ export const metadata: Metadata = {
     description: "Crafting cinematic stories frame by frame.",
     images: ["/og-image.jpg"],
   },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: ["/icon.svg"],
+    apple: ["/icon.svg"],
+  },
   robots: {
     index: true,
     follow: true,

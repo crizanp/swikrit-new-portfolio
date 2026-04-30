@@ -45,6 +45,25 @@ const skills = [
   { label: "Photoshop / Illustrator", value: 90, icon: "🖌️" },
 ];
 
+const serviceThemes = [
+  {
+    front: "border-[#7c3aed]/35 bg-gradient-to-br from-[#7c3aed]/20 via-card/90 to-card",
+    back: "border-[#7c3aed]/40 bg-gradient-to-br from-[#7c3aed]/20 via-card to-surface",
+  },
+  {
+    front: "border-[#2563eb]/35 bg-gradient-to-br from-[#2563eb]/18 via-card/90 to-card",
+    back: "border-[#2563eb]/40 bg-gradient-to-br from-[#2563eb]/22 via-card to-surface",
+  },
+  {
+    front: "border-[#0ea5a4]/35 bg-gradient-to-br from-[#0ea5a4]/18 via-card/90 to-card",
+    back: "border-[#0ea5a4]/40 bg-gradient-to-br from-[#0ea5a4]/20 via-card to-surface",
+  },
+  {
+    front: "border-[#f59e0b]/35 bg-gradient-to-br from-[#f59e0b]/20 via-card/90 to-card",
+    back: "border-[#f59e0b]/40 bg-gradient-to-br from-[#f59e0b]/25 via-card to-surface",
+  },
+] as const;
+
 function parseStatValue(rawValue: string | undefined, fallbackValue: number, fallbackSuffix: string) {
   const normalized = rawValue?.trim();
 
@@ -130,8 +149,10 @@ export function LandingExperience({
   const aboutHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const skillFillRefs = useRef<(HTMLDivElement | null)[]>([]);
   const featuredGridRef = useRef<HTMLDivElement | null>(null);
+  const testimonialSectionRef = useRef<HTMLElement | null>(null);
   const testimonialTrackRef = useRef<HTMLDivElement | null>(null);
   const gradientHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const testimonialStoppedRef = useRef(false);
 
   const nameParts = profile.display_name
     .trim()
@@ -164,7 +185,7 @@ export function LandingExperience({
       services
         .filter((service) => service.is_active !== false)
         .slice(0, 4)
-        .map((service) => ({
+        .map((service, index) => ({
           id: service.id,
           icon: resolveServiceGlyph(service.icon),
           title: service.title,
@@ -172,6 +193,7 @@ export function LandingExperience({
             service.description ??
             "Tailored delivery for high-impact content and campaign storytelling.",
           price: service.price_range ?? "Custom Quote",
+          theme: serviceThemes[index % serviceThemes.length],
         })),
     [services]
   );
@@ -180,20 +202,7 @@ export function LandingExperience({
     const filtered = featuredWork.filter((item) => item.is_featured !== false);
     const base = filtered.length > 0 ? filtered : featuredWork;
 
-    if (base.length === 0) {
-      return [] as PortfolioItem[];
-    }
-
-    const expanded: PortfolioItem[] = [...base];
-    let index = 0;
-
-    while (expanded.length < 6) {
-      const source = base[index % base.length];
-      expanded.push({ ...source, id: `${source.id}-clone-${index}` });
-      index += 1;
-    }
-
-    return expanded.slice(0, 6);
+    return base.slice(0, 6);
   }, [featuredWork]);
 
   const testimonialItems = useMemo(() => {
@@ -458,8 +467,6 @@ export function LandingExperience({
       return;
     }
 
-    gsap.set(cards, { opacity: 0, y: 34 });
-
     const trigger = ScrollTrigger.create({
       trigger: grid,
       start: "top 78%",
@@ -481,29 +488,48 @@ export function LandingExperience({
   }, [featuredItems.length]);
 
   useEffect(() => {
-    const track = testimonialTrackRef.current;
+    testimonialStoppedRef.current = false;
+  }, [testimonialItems.length]);
 
-    if (!track || prefersReducedMotion()) {
+  useEffect(() => {
+    const track = testimonialTrackRef.current;
+    const section = testimonialSectionRef.current;
+
+    if (!track || !section || prefersReducedMotion()) {
       return;
     }
 
     let speed = 0.55;
     let offset = 0;
     let loopWidth = track.scrollWidth / 2;
+    let isActive = false;
 
     const onResize = () => {
       loopWidth = track.scrollWidth / 2;
     };
 
     const onEnter = () => {
-      speed = 0.18;
+      if (!testimonialStoppedRef.current && isActive) {
+        speed = 0.18;
+      }
     };
 
     const onLeave = () => {
-      speed = 0.55;
+      if (!testimonialStoppedRef.current && isActive) {
+        speed = 0.55;
+      }
+    };
+
+    const onClickStop = () => {
+      testimonialStoppedRef.current = true;
+      isActive = false;
     };
 
     const ticker = () => {
+      if (!isActive || testimonialStoppedRef.current) {
+        return;
+      }
+
       offset -= speed;
       if (Math.abs(offset) >= loopWidth) {
         offset = 0;
@@ -511,15 +537,42 @@ export function LandingExperience({
       gsap.set(track, { x: offset });
     };
 
+    const trigger = ScrollTrigger.create({
+      trigger: section,
+      start: "top 78%",
+      end: "bottom 22%",
+      onEnter: () => {
+        if (!testimonialStoppedRef.current) {
+          isActive = true;
+          speed = 0.55;
+        }
+      },
+      onEnterBack: () => {
+        if (!testimonialStoppedRef.current) {
+          isActive = true;
+          speed = 0.55;
+        }
+      },
+      onLeave: () => {
+        isActive = false;
+      },
+      onLeaveBack: () => {
+        isActive = false;
+      },
+    });
+
     const wrapper = track.parentElement;
     wrapper?.addEventListener("mouseenter", onEnter);
     wrapper?.addEventListener("mouseleave", onLeave);
+    wrapper?.addEventListener("click", onClickStop);
     window.addEventListener("resize", onResize);
     gsap.ticker.add(ticker);
 
     return () => {
+      trigger.kill();
       wrapper?.removeEventListener("mouseenter", onEnter);
       wrapper?.removeEventListener("mouseleave", onLeave);
+      wrapper?.removeEventListener("click", onClickStop);
       window.removeEventListener("resize", onResize);
       gsap.ticker.remove(ticker);
     };
@@ -553,13 +606,14 @@ export function LandingExperience({
       >
         <HeroBg
           sectionRef={heroSectionRef}
-          className="pointer-events-none absolute inset-0 -z-10 opacity-85"
+          className="pointer-events-none absolute inset-0 -z-10 opacity-45 dark:opacity-85"
         />
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_8%,hsl(var(--brand)/0.24),transparent_34%),radial-gradient(circle_at_85%_15%,hsl(var(--brand)/0.12),transparent_28%),linear-gradient(180deg,hsl(var(--surface))_0%,hsl(var(--background))_48%)]" />
+        <div className="pointer-events-none absolute inset-0 -z-10 dark:hidden bg-[radial-gradient(circle_at_10%_8%,hsl(var(--brand)/0.2),transparent_34%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.75),transparent_40%),linear-gradient(180deg,#f4f2ff_0%,hsl(var(--background))_56%)]" />
+        <div className="pointer-events-none absolute inset-0 -z-10 hidden dark:block bg-[radial-gradient(circle_at_10%_8%,hsl(var(--brand)/0.24),transparent_34%),radial-gradient(circle_at_85%_15%,hsl(var(--brand)/0.12),transparent_28%),linear-gradient(180deg,hsl(var(--surface))_0%,hsl(var(--background))_48%)]" />
 
         <div className="container py-4 sm:py-6">
-          <div className="mx-auto max-w-5xl rounded-[2rem] border border-border/70 bg-black/45 px-5 py-8 shadow-[0_0_0_1px_hsl(var(--border))_inset,0_30px_90px_-45px_hsl(var(--brand)/0.45)] backdrop-blur-xl sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-            <div className="hero-meta mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300">
+          <div className="mx-auto w-full rounded-[2rem] border border-brand/20 bg-white/78 px-5 py-8 shadow-[0_0_0_1px_hsl(var(--border))_inset,0_30px_90px_-45px_hsl(var(--brand)/0.28)] backdrop-blur-xl dark:border-border/70 dark:bg-black/45 dark:shadow-[0_0_0_1px_hsl(var(--border))_inset,0_30px_90px_-45px_hsl(var(--brand)/0.45)] sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+            <div className="hero-meta mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/35 bg-emerald-500/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
@@ -690,7 +744,7 @@ export function LandingExperience({
                       alt={`${profile.display_name} portrait`}
                       fill
                       sizes="192px"
-                      className="object-cover"
+                      className="object-cover object-top"
                     />
                   </div>
                   <p className="text-sm italic text-muted-foreground">
@@ -822,15 +876,24 @@ export function LandingExperience({
             {serviceTeasers.map((service) => (
               <div key={service.id} className="group [perspective:1200px]">
                 <div className="relative h-72 w-full rounded-2xl transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-                  <div className="absolute inset-0 rounded-2xl border border-border/70 bg-card/80 p-5 [backface-visibility:hidden]">
+                  <div
+                    className={cn(
+                      "absolute inset-0 flex flex-col items-center justify-center rounded-2xl p-6 text-center [backface-visibility:hidden]",
+                      service.theme.front
+                    )}
+                  >
                     <div className="text-4xl" aria-hidden="true">
                       {service.icon}
                     </div>
-                    <h4 className="mt-8 font-heading text-2xl font-semibold">{service.title}</h4>
-                    <p className="mt-3 text-sm text-muted-foreground">Hover to explore details</p>
+                    <h4 className="mt-4 font-heading text-2xl font-semibold">{service.title}</h4>
                   </div>
 
-                  <div className="absolute inset-0 rounded-2xl border border-brand/35 bg-gradient-to-br from-brand/15 via-card to-surface p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                  <div
+                    className={cn(
+                      "absolute inset-0 flex flex-col justify-center rounded-2xl p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]",
+                      service.theme.back
+                    )}
+                  >
                     <p className="text-sm text-muted-foreground">{service.description}</p>
                     <p className="mt-8 font-heading text-xl font-semibold text-brand">{service.price}</p>
                   </div>
@@ -845,7 +908,7 @@ export function LandingExperience({
         )}
       </section>
 
-      <section className="overflow-hidden pb-20" data-cursor-tone="dark">
+      <section ref={testimonialSectionRef} className="overflow-hidden pb-20" data-cursor-tone="dark">
         <div className="container mb-8">
           <h3 className="font-heading text-3xl font-bold sm:text-4xl">Testimonials</h3>
         </div>

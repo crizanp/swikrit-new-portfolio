@@ -160,7 +160,7 @@ export default async function AboutPage() {
                 alt={`${profile.display_name} portrait`}
                 fill
                 sizes="(max-width: 1024px) 100vw, 40vw"
-                className="rounded-xl object-cover"
+                className="rounded-xl object-cover object-top"
               />
             </div>
           </div>

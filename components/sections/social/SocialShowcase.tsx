@@ -11,6 +11,7 @@ import {
   Music2,
   Sparkles,
 } from "lucide-react";
+import { resolvePortfolioThumbnailUrl } from "@/lib/portfolio-media";
 import type { SocialStatsSettings } from "@/lib/site-settings";
 import type { SocialPost } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -123,7 +124,7 @@ export function SocialShowcase({ posts, social }: SocialShowcaseProps) {
             No posts available for this platform yet.
           </div>
         ) : (
-          <div className="grid gap-4 md:auto-rows-[240px] md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2">
             {filteredPosts.map((post, index) => {
               const platform = post.normalizedPlatform;
               if (!platform) {
@@ -131,39 +132,35 @@ export function SocialShowcase({ posts, social }: SocialShowcaseProps) {
               }
 
               const meta = platformMeta[platform];
-              const sizeClass = index % 5 === 0 ? "md:col-span-2" : "";
               const fallbackHref = followLinks[platform];
               const postHref = post.post_url || fallbackHref || "";
+              const thumbnailUrl = resolvePortfolioThumbnailUrl({
+                thumbnail_url: post.thumbnail_url,
+                video_url: post.post_url,
+                video_embed: post.embed_code,
+              });
 
               return (
                 <article
                   key={post.id}
-                  className={cn(
-                    "group flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/75 transition duration-300 hover:-translate-y-1 hover:border-brand/50",
-                    sizeClass
-                  )}
+                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/75 transition duration-300 hover:-translate-y-1 hover:border-brand/50"
                 >
                   <div className={cn("relative overflow-hidden border-b border-border/70 bg-gradient-to-br", meta.cardAccent)}>
-                    {platform !== "linkedin" && post.embed_code ? (
-                      <div
-                        className="aspect-video overflow-hidden"
-                        dangerouslySetInnerHTML={{ __html: post.embed_code }}
-                      />
-                    ) : (
-                      <div className="relative aspect-video">
-                        {post.thumbnail_url ? (
-                          <Image
-                            src={post.thumbnail_url}
-                            alt={post.caption ?? `${meta.label} post`}
-                            fill
-                            sizes="(max-width: 1024px) 100vw, 50vw"
-                            className="object-cover transition duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-gradient-to-br from-brand/30 via-background to-background" />
-                        )}
-                      </div>
-                    )}
+                    <div className="relative aspect-[4/3] min-h-[220px]">
+                      {thumbnailUrl ? (
+                        <Image
+                          src={thumbnailUrl}
+                          alt={post.caption ?? `${meta.label} post`}
+                          fill
+                          priority={index < 2}
+                          loading={index < 2 ? "eager" : "lazy"}
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                          className="object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-brand/30 via-background to-background" />
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex flex-1 flex-col gap-3 p-4">

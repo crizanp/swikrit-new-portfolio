@@ -135,12 +135,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  body,
-  a,
-  button,
-  input,
-  textarea,
-  select {
+  body[data-custom-cursor='enabled'],
+  body[data-custom-cursor='enabled'] a,
+  body[data-custom-cursor='enabled'] button,
+  body[data-custom-cursor='enabled'] input,
+  body[data-custom-cursor='enabled'] textarea,
+  body[data-custom-cursor='enabled'] select {
     cursor: none;
   }
 }

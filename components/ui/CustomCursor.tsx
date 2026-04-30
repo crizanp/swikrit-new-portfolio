@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { gsap, prefersReducedMotion, registerGsapPlugins } from "@/lib/animations/gsap";
 
 const interactiveSelector =
-  "a, button, [role='button'], input, textarea, select, [data-cursor-hover='true']";
+  "a, [href], button, [role='button'], input, textarea, select, [data-cursor-hover='true']";
 
 export function CustomCursor() {
   const [isEnabled, setIsEnabled] = useState(false);
@@ -14,6 +14,22 @@ export function CustomCursor() {
     const isCoarsePointer = window.matchMedia("(hover: none), (pointer: coarse)").matches;
     setIsEnabled(!isCoarsePointer && !prefersReducedMotion());
   }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    if (isEnabled) {
+      document.body.setAttribute("data-custom-cursor", "enabled");
+    } else {
+      document.body.removeAttribute("data-custom-cursor");
+    }
+
+    return () => {
+      document.body.removeAttribute("data-custom-cursor");
+    };
+  }, [isEnabled]);
 
   useEffect(() => {
     if (!isEnabled) {
@@ -30,7 +46,15 @@ export function CustomCursor() {
 
     const xTo = gsap.quickTo(cursor, "x", { duration: 0.06, ease: "power2.out" });
     const yTo = gsap.quickTo(cursor, "y", { duration: 0.06, ease: "power2.out" });
-    const scaleTo = gsap.quickTo(cursor, "scale", { duration: 0.16, ease: "power2.out" });
+
+    const setCursorScale = (interactive: boolean) => {
+      gsap.to(cursor, {
+        scale: interactive ? 1.75 : 1,
+        duration: 0.16,
+        ease: "power2.out",
+        overwrite: "auto",
+      });
+    };
 
     const onPointerMove = (event: PointerEvent) => {
       xTo(event.clientX);
@@ -40,14 +64,14 @@ export function CustomCursor() {
     const onPointerOver = (event: Event) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest(interactiveSelector)) {
-        scaleTo(1.45);
+        setCursorScale(true);
       }
     };
 
     const onPointerOut = (event: Event) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest(interactiveSelector)) {
-        scaleTo(1);
+        setCursorScale(false);
       }
     };
 
@@ -61,7 +85,7 @@ export function CustomCursor() {
       document.removeEventListener("pointerout", onPointerOut);
       xTo(0);
       yTo(0);
-      scaleTo(1);
+      setCursorScale(false);
     };
   }, [isEnabled]);
 
