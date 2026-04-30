@@ -1,40 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
 import {
+  defaultProfileSettings,
+  defaultSocialStatsSettings,
+  normalizeProfileSettings,
+  normalizeSocialStatsSettings,
+  type ProfileSettings,
+  type SocialStatsSettings,
+} from "@/lib/site-settings";
+import {
   isSchemaNotReadyError,
   schemaNotReadyWriteResponse,
 } from "@/lib/supabase/error-utils";
 import { createClient } from "@/lib/supabase/server";
-
-type ProfileSettings = {
-  display_name?: string;
-  bio?: string;
-};
-
-type SocialStatsSettings = {
-  instagram_handle?: string;
-  instagram_followers?: string;
-  tiktok_handle?: string;
-  tiktok_followers?: string;
-  linkedin_handle?: string;
-  linkedin_followers?: string;
-  total_views_label?: string;
-};
-
-const defaultProfile: ProfileSettings = {
-  display_name: "Swikrit Pokhrel",
-  bio: "",
-};
-
-const defaultSocial: SocialStatsSettings = {
-  instagram_handle: "@swikritpokhrel",
-  instagram_followers: "24K+",
-  tiktok_handle: "@swikritpokhrel",
-  tiktok_followers: "18K+",
-  linkedin_handle: "swikrit-pokhrel",
-  linkedin_followers: "6K+",
-  total_views_label: "12M+",
-};
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,8 +33,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
           {
             data: {
-              profile: defaultProfile,
-              social: defaultSocial,
+              profile: defaultProfileSettings,
+              social: defaultSocialStatsSettings,
             },
           },
           { status: 200 }
@@ -69,16 +47,18 @@ export async function GET(request: NextRequest) {
     const rows = data ?? [];
     const profileRow = rows.find((row) => row.setting_key === "profile");
     const socialRow = rows.find((row) => row.setting_key === "social_stats");
+    const profile = normalizeProfileSettings(
+      (profileRow?.setting_value ?? {}) as Partial<ProfileSettings>
+    );
+    const social = normalizeSocialStatsSettings(
+      (socialRow?.setting_value ?? {}) as Partial<SocialStatsSettings>
+    );
 
     return NextResponse.json(
       {
         data: {
-          profile: (profileRow?.setting_value ?? {
-            ...defaultProfile,
-          }) as ProfileSettings,
-          social: (socialRow?.setting_value ?? {
-            ...defaultSocial,
-          }) as SocialStatsSettings,
+          profile,
+          social,
         },
       },
       { status: 200 }
@@ -98,24 +78,11 @@ export async function PUT(request: NextRequest) {
     }
 
     const payload = (await request.json()) as {
-      profile?: ProfileSettings;
-      social?: SocialStatsSettings;
+      profile?: Partial<ProfileSettings>;
+      social?: Partial<SocialStatsSettings>;
     };
-
-    const profile = {
-      display_name: payload.profile?.display_name?.trim() || "Swikrit Pokhrel",
-      bio: payload.profile?.bio?.trim() || "",
-    };
-
-    const social = {
-      instagram_handle: payload.social?.instagram_handle?.trim() || "@swikritpokhrel",
-      instagram_followers: payload.social?.instagram_followers?.trim() || "24K+",
-      tiktok_handle: payload.social?.tiktok_handle?.trim() || "@swikritpokhrel",
-      tiktok_followers: payload.social?.tiktok_followers?.trim() || "18K+",
-      linkedin_handle: payload.social?.linkedin_handle?.trim() || "swikrit-pokhrel",
-      linkedin_followers: payload.social?.linkedin_followers?.trim() || "6K+",
-      total_views_label: payload.social?.total_views_label?.trim() || "12M+",
-    };
+    const profile = normalizeProfileSettings(payload.profile);
+    const social = normalizeSocialStatsSettings(payload.social);
 
     const { data, error } = await supabase
       .from("site_settings")

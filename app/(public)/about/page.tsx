@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Clapperboard,
@@ -17,8 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildOgImageUrl, createBreadcrumbJsonLd } from "@/lib/seo";
-import { getSiteStats, getSocialPosts, getSocialStatsSettings, getTestimonials } from "@/lib/data";
-import { getPublicUrl } from "@/lib/supabase/storage";
+import { getPublicSiteSettings, getSiteStats, getSocialPosts, getTestimonials } from "@/lib/data";
+import { getPublicUrl, type SupabaseStorageBucket } from "@/lib/supabase/storage";
 
 export const metadata: Metadata = {
   title: "About",
@@ -52,13 +51,26 @@ const aboutBreadcrumb = createBreadcrumbJsonLd([
   { name: "About", path: "/about" },
 ]);
 
+const allowedCvBuckets = new Set<SupabaseStorageBucket>([
+  "portfolio-videos",
+  "portfolio-images",
+  "blog-images",
+  "avatars",
+]);
+
+function resolveCvBucket(value: string): SupabaseStorageBucket {
+  const normalized = value.trim() as SupabaseStorageBucket;
+  return allowedCvBuckets.has(normalized) ? normalized : "avatars";
+}
+
 export default async function AboutPage() {
-  const [stats, socialPosts, socialStats, testimonials] = await Promise.all([
+  const [stats, socialPosts, testimonials, publicSettings] = await Promise.all([
     getSiteStats(),
     getSocialPosts(9),
-    getSocialStatsSettings(),
     getTestimonials(true),
+    getPublicSiteSettings(),
   ]);
+  const { profile, social } = publicSettings;
 
   const timeline = [
     {
@@ -94,7 +106,9 @@ export default async function AboutPage() {
 
   let cvUrl = "#";
   try {
-    cvUrl = getPublicUrl("avatars", "swikrit-cv.pdf");
+    if (profile.cv_bucket && profile.cv_path) {
+      cvUrl = getPublicUrl(resolveCvBucket(profile.cv_bucket), profile.cv_path);
+    }
   } catch {
     cvUrl = "#";
   }
@@ -109,10 +123,9 @@ export default async function AboutPage() {
       <JsonLd data={aboutBreadcrumb} />
       <section className="container space-y-4">
         <p className="text-sm uppercase tracking-[0.12em] text-brand">About</p>
-        <h1 className="text-4xl font-bold sm:text-5xl">Swikrit Pokhrel</h1>
+        <h1 className="text-4xl font-bold sm:text-5xl">{profile.display_name}</h1>
         <p className="max-w-2xl text-muted-foreground">
-          Professional video editor and motion graphics designer creating cinematic,
-          conversion-focused stories for Nepal and global clients.
+          {profile.about_intro}
         </p>
       </section>
 
@@ -120,14 +133,10 @@ export default async function AboutPage() {
         <div className="space-y-4">
           <Badge variant="outline">Full Bio</Badge>
           <p className="text-muted-foreground">
-            I craft edits that blend emotional storytelling with platform performance.
-            My process combines strategy, pacing, sound, and motion design so each cut
-            feels cinematic while still engineered for retention and engagement.
+            {profile.about_paragraph_one}
           </p>
           <p className="text-muted-foreground">
-            From launch films to social content systems, I collaborate closely with
-            founders, artists, and marketing teams to deliver fast turnarounds without
-            compromising visual quality.
+            {profile.about_paragraph_two}
           </p>
           <Button asChild variant="brand">
             <Link href={cvUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2">
@@ -140,8 +149,8 @@ export default async function AboutPage() {
         <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-brand/25 via-background to-background p-2">
           <div className="relative aspect-[4/5] rounded-xl bg-black/20">
             <img
-              src="https://i.postimg.cc/5t219fvm/Untitled-design-(25).png"
-              alt="Swikrit Pokhrel portrait"
+              src={profile.about_portrait_url}
+              alt={`${profile.display_name} portrait`}
               sizes="(max-width: 1024px) 100vw, 40vw"
               className="rounded-xl object-cover"
             />
@@ -230,7 +239,7 @@ export default async function AboutPage() {
 
       <AboutBelowFold
         statsByKey={statByKey}
-        socialStats={socialStats}
+        socialStats={social}
         socialPosts={socialPosts}
         testimonials={testimonials}
       />

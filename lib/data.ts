@@ -6,6 +6,14 @@ import {
   fallbackStats,
   fallbackTestimonials,
 } from "@/lib/constants";
+import {
+  defaultProfileSettings,
+  defaultSocialStatsSettings,
+  normalizeProfileSettings,
+  normalizeSocialStatsSettings,
+  type ProfileSettings,
+  type SocialStatsSettings,
+} from "@/lib/site-settings";
 import { createClient } from "@/lib/supabase/server";
 import type {
   BlogPost,
@@ -18,25 +26,7 @@ import type {
   Testimonial,
 } from "@/lib/types";
 
-export interface SocialStatsSettings {
-  instagram_handle: string;
-  instagram_followers: string;
-  tiktok_handle: string;
-  tiktok_followers: string;
-  linkedin_handle: string;
-  linkedin_followers: string;
-  total_views_label: string;
-}
-
-const fallbackSocialStatsSettings: SocialStatsSettings = {
-  instagram_handle: "@swikritpokhrel",
-  instagram_followers: "24K+",
-  tiktok_handle: "@swikritpokhrel",
-  tiktok_followers: "18K+",
-  linkedin_handle: "swikrit-pokhrel",
-  linkedin_followers: "6K+",
-  total_views_label: "12M+",
-};
+export type { ProfileSettings, SocialStatsSettings };
 
 function normalizeCategory(category?: string | null) {
   if (!category) {
@@ -335,6 +325,25 @@ export async function getSocialPosts(limit = 12) {
   }
 }
 
+export async function getProfileSettings() {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("site_settings")
+      .select("setting_value")
+      .eq("setting_key", "profile")
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return normalizeProfileSettings((data?.setting_value ?? {}) as Partial<ProfileSettings>);
+  } catch {
+    return defaultProfileSettings;
+  }
+}
+
 export async function getSocialStatsSettings() {
   try {
     const supabase = createClient();
@@ -348,21 +357,41 @@ export async function getSocialStatsSettings() {
       throw error;
     }
 
-    const value = (data?.setting_value ?? {}) as Partial<SocialStatsSettings>;
+    return normalizeSocialStatsSettings((data?.setting_value ?? {}) as Partial<SocialStatsSettings>);
+  } catch {
+    return defaultSocialStatsSettings;
+  }
+}
+
+export async function getPublicSiteSettings() {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("site_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", ["profile", "social_stats"]);
+
+    if (error) {
+      throw error;
+    }
+
+    const rows = data ?? [];
+    const profileRow = rows.find((row) => row.setting_key === "profile");
+    const socialRow = rows.find((row) => row.setting_key === "social_stats");
 
     return {
-      instagram_handle: value.instagram_handle ?? fallbackSocialStatsSettings.instagram_handle,
-      instagram_followers:
-        value.instagram_followers ?? fallbackSocialStatsSettings.instagram_followers,
-      tiktok_handle: value.tiktok_handle ?? fallbackSocialStatsSettings.tiktok_handle,
-      tiktok_followers: value.tiktok_followers ?? fallbackSocialStatsSettings.tiktok_followers,
-      linkedin_handle: value.linkedin_handle ?? fallbackSocialStatsSettings.linkedin_handle,
-      linkedin_followers:
-        value.linkedin_followers ?? fallbackSocialStatsSettings.linkedin_followers,
-      total_views_label: value.total_views_label ?? fallbackSocialStatsSettings.total_views_label,
-    } satisfies SocialStatsSettings;
+      profile: normalizeProfileSettings(
+        (profileRow?.setting_value ?? {}) as Partial<ProfileSettings>
+      ),
+      social: normalizeSocialStatsSettings(
+        (socialRow?.setting_value ?? {}) as Partial<SocialStatsSettings>
+      ),
+    };
   } catch {
-    return fallbackSocialStatsSettings;
+    return {
+      profile: defaultProfileSettings,
+      social: defaultSocialStatsSettings,
+    };
   }
 }
 

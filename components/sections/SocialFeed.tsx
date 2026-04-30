@@ -7,35 +7,53 @@ import type { SocialPost } from "@/lib/types";
 
 interface SocialFeedProps {
   posts: SocialPost[];
+  social?: {
+    instagram_url?: string;
+    tiktok_url?: string;
+    linkedin_url?: string;
+  };
 }
 
 const platformConfig = {
   instagram: {
     label: "Instagram",
-    followUrl: "https://instagram.com",
     buttonClass: "bg-[#E4405F] text-white hover:bg-[#E4405F]/90",
   },
   tiktok: {
     label: "TikTok",
-    followUrl: "https://tiktok.com",
     buttonClass: "bg-black text-white hover:bg-black/90",
   },
   linkedin: {
     label: "LinkedIn",
-    followUrl: "https://linkedin.com",
     buttonClass: "bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90",
   },
+} as const;
+
+const defaultFollowUrlByPlatform = {
+  instagram: "https://instagram.com",
+  tiktok: "https://tiktok.com",
+  linkedin: "https://linkedin.com",
 } as const;
 
 function normalizePlatform(value: string) {
   return value.trim().toLowerCase();
 }
 
-export function SocialFeed({ posts }: SocialFeedProps) {
+export function SocialFeed({ posts, social }: SocialFeedProps) {
+  const followUrlByPlatform = {
+    instagram: social?.instagram_url ?? defaultFollowUrlByPlatform.instagram,
+    tiktok: social?.tiktok_url ?? defaultFollowUrlByPlatform.tiktok,
+    linkedin: social?.linkedin_url ?? defaultFollowUrlByPlatform.linkedin,
+  };
+
   const columns = (Object.keys(platformConfig) as Array<keyof typeof platformConfig>).map(
     (platform) => {
       const items = posts.filter((post) => normalizePlatform(post.platform) === platform).slice(0, 3);
-      return { platform, items };
+      return {
+        platform,
+        items,
+        followUrl: followUrlByPlatform[platform],
+      };
     }
   );
 
@@ -52,7 +70,7 @@ export function SocialFeed({ posts }: SocialFeedProps) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        {columns.map(({ platform, items }) => {
+        {columns.map(({ platform, items, followUrl }) => {
           const config = platformConfig[platform];
 
           return (
@@ -95,7 +113,7 @@ export function SocialFeed({ posts }: SocialFeedProps) {
                           {post.caption ?? "Latest post update."}
                         </p>
                         <Link
-                          href={post.post_url ?? config.followUrl}
+                          href={post.post_url ?? followUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1.5 text-sm font-medium text-brand"
@@ -110,7 +128,7 @@ export function SocialFeed({ posts }: SocialFeedProps) {
               </div>
 
               <Button asChild className={config.buttonClass}>
-                <Link href={config.followUrl} target="_blank" rel="noreferrer">
+                <Link href={followUrl} target="_blank" rel="noreferrer">
                   Follow on {config.label}
                 </Link>
               </Button>

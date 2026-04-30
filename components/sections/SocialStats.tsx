@@ -11,10 +11,13 @@ interface SocialStatsProps {
   social?: {
     instagram_handle?: string;
     instagram_followers?: string;
+    instagram_url?: string;
     tiktok_handle?: string;
     tiktok_followers?: string;
+    tiktok_url?: string;
     linkedin_handle?: string;
     linkedin_followers?: string;
+    linkedin_url?: string;
     total_views_label?: string;
   };
 }
@@ -51,21 +54,21 @@ export function SocialStats({ stats, social }: SocialStatsProps) {
   const socialRows = [
     {
       label: "Instagram",
-      href: "https://instagram.com",
+      href: social?.instagram_url ?? "https://instagram.com",
       handle: social?.instagram_handle ?? "@swikritpokhrel",
       followers: social?.instagram_followers ?? "24K+",
       icon: <Camera className="h-4 w-4" aria-hidden="true" />,
     },
     {
       label: "TikTok",
-      href: "https://tiktok.com",
+      href: social?.tiktok_url ?? "https://tiktok.com",
       handle: social?.tiktok_handle ?? "@swikritpokhrel",
       followers: social?.tiktok_followers ?? "18K+",
       icon: <Music2 className="h-4 w-4" aria-hidden="true" />,
     },
     {
       label: "LinkedIn",
-      href: "https://linkedin.com",
+      href: social?.linkedin_url ?? "https://linkedin.com",
       handle: social?.linkedin_handle ?? "swikrit-pokhrel",
       followers: social?.linkedin_followers ?? "6K+",
       icon: <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />,

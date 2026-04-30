@@ -60,7 +60,7 @@ export function AboutBelowFold({
       </section>
 
       <section className="container">
-        <LazySocialFeed posts={socialPosts} />
+        <LazySocialFeed posts={socialPosts} social={socialStats} />
       </section>
     </Suspense>
   );

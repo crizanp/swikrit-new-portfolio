@@ -4,8 +4,8 @@ import { ArrowUpRight, Mail, MapPin, MessageSquareText, Music2 } from "lucide-re
 import { JsonLd } from "@/components/seo/JsonLd";
 import { ContactForm } from "@/components/sections/contact-form";
 import { Card, CardContent } from "@/components/ui/card";
+import { getPublicSiteSettings } from "@/lib/data";
 import { buildOgImageUrl, createBreadcrumbJsonLd } from "@/lib/seo";
-import { siteConfig } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -45,8 +45,9 @@ interface ContactPageProps {
   };
 }
 
-export default function ContactPage({ searchParams }: ContactPageProps) {
+export default async function ContactPage({ searchParams }: ContactPageProps) {
   const initialSubject = searchParams?.subject ?? "";
+  const { profile, social } = await getPublicSiteSettings();
 
   return (
     <div className="space-y-10 pt-12">
@@ -68,15 +69,15 @@ export default function ContactPage({ searchParams }: ContactPageProps) {
             <CardContent className="space-y-4 p-5">
               <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                Based in Nepal · Available Worldwide
+                {profile.location_label}
               </div>
               <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4" />
-                {siteConfig.email}
+                {profile.contact_email}
               </div>
               <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <MessageSquareText className="h-4 w-4" />
-                Typical reply time: within 24 hours
+                Typical reply time: {profile.contact_reply_time}
               </div>
             </CardContent>
           </Card>
@@ -84,26 +85,26 @@ export default function ContactPage({ searchParams }: ContactPageProps) {
           <Card className="border-border/80 bg-card/75">
             <CardContent className="space-y-3 p-5 text-sm">
               <p className="font-medium">Reach directly</p>
-              <Link href={`mailto:${siteConfig.email}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Link href={`mailto:${profile.contact_email}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                 <Mail className="h-4 w-4" />
-                {siteConfig.email}
+                {profile.contact_email}
               </Link>
-              <Link href="https://instagram.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Link href={social.instagram_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                 <ArrowUpRight className="h-4 w-4" />
-                Instagram
+                Instagram {social.instagram_handle}
               </Link>
-              <Link href="https://tiktok.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Link href={social.tiktok_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                 <Music2 className="h-4 w-4" />
-                TikTok
+                TikTok {social.tiktok_handle}
               </Link>
-              <Link href="https://linkedin.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Link href={social.linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                 <ArrowUpRight className="h-4 w-4" />
                 LinkedIn
               </Link>
             </CardContent>
           </Card>
 
-          <p className="text-sm text-muted-foreground">Usually responds within 24 hours</p>
+          <p className="text-sm text-muted-foreground">Usually responds {profile.contact_reply_time.toLowerCase()}</p>
         </div>
       </section>
     </div>

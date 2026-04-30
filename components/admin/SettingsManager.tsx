@@ -2,23 +2,9 @@
 
 import { useState } from "react";
 import { LogOut, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
+import type { ProfileSettings, SocialStatsSettings } from "@/lib/site-settings";
 import type { SiteStat } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
-
-type ProfileSettings = {
-  display_name: string;
-  bio: string;
-};
-
-type SocialStatsSettings = {
-  instagram_handle: string;
-  instagram_followers: string;
-  tiktok_handle: string;
-  tiktok_followers: string;
-  linkedin_handle: string;
-  linkedin_followers: string;
-  total_views_label: string;
-};
 
 type StorageUsage = {
   bucket: string;
@@ -264,110 +250,272 @@ export function SettingsManager({
       </section>
 
       <section className="rounded-xl border border-white/10 bg-zinc-950 p-5">
-        <h2 className="mb-4 text-lg font-semibold text-zinc-100">Profile Settings</h2>
+        <h2 className="mb-4 text-lg font-semibold text-zinc-100">Profile, About, and Contact Settings</h2>
 
         <div className="space-y-3">
-          <label className="space-y-1">
-            <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Display Name</span>
-            <input
-              value={profile.display_name}
-              onChange={(event) =>
-                setProfile((current) => ({ ...current, display_name: event.target.value }))
-              }
-              className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
-            />
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Bio</span>
-            <textarea
-              value={profile.bio}
-              onChange={(event) => setProfile((current) => ({ ...current, bio: event.target.value }))}
-              className="min-h-[130px] w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
-            />
-          </label>
-
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Instagram Handle</span>
+              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Display Name</span>
               <input
-                value={social.instagram_handle}
+                value={profile.display_name}
                 onChange={(event) =>
-                  setSocial((current) => ({ ...current, instagram_handle: event.target.value }))
+                  setProfile((current) => ({ ...current, display_name: event.target.value }))
                 }
                 className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Instagram Followers</span>
+              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Professional Title</span>
               <input
-                value={social.instagram_followers}
+                value={profile.title}
                 onChange={(event) =>
-                  setSocial((current) => ({ ...current, instagram_followers: event.target.value }))
+                  setProfile((current) => ({ ...current, title: event.target.value }))
                 }
                 className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">TikTok Handle</span>
+              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Contact Email</span>
               <input
-                value={social.tiktok_handle}
+                value={profile.contact_email}
                 onChange={(event) =>
-                  setSocial((current) => ({ ...current, tiktok_handle: event.target.value }))
+                  setProfile((current) => ({ ...current, contact_email: event.target.value }))
                 }
                 className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">TikTok Followers</span>
+              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Location Label</span>
               <input
-                value={social.tiktok_followers}
+                value={profile.location_label}
                 onChange={(event) =>
-                  setSocial((current) => ({ ...current, tiktok_followers: event.target.value }))
-                }
-                className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
-              />
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">LinkedIn Handle</span>
-              <input
-                value={social.linkedin_handle}
-                onChange={(event) =>
-                  setSocial((current) => ({ ...current, linkedin_handle: event.target.value }))
-                }
-                className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
-              />
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">LinkedIn Followers</span>
-              <input
-                value={social.linkedin_followers}
-                onChange={(event) =>
-                  setSocial((current) => ({ ...current, linkedin_followers: event.target.value }))
+                  setProfile((current) => ({ ...current, location_label: event.target.value }))
                 }
                 className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
               />
             </label>
 
             <label className="space-y-1 md:col-span-2">
-              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Total Views Label</span>
+              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Reply Time Label</span>
               <input
-                value={social.total_views_label}
+                value={profile.contact_reply_time}
                 onChange={(event) =>
-                  setSocial((current) => ({ ...current, total_views_label: event.target.value }))
+                  setProfile((current) => ({ ...current, contact_reply_time: event.target.value }))
                 }
                 className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
               />
             </label>
           </div>
+
+          <label className="space-y-1">
+            <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Bio</span>
+            <textarea
+              value={profile.bio}
+              onChange={(event) => setProfile((current) => ({ ...current, bio: event.target.value }))}
+              className="min-h-[90px] w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+            />
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">About Intro</span>
+            <textarea
+              value={profile.about_intro}
+              onChange={(event) =>
+                setProfile((current) => ({ ...current, about_intro: event.target.value }))
+              }
+              className="min-h-[90px] w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+            />
+          </label>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1">
+              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">About Paragraph 1</span>
+              <textarea
+                value={profile.about_paragraph_one}
+                onChange={(event) =>
+                  setProfile((current) => ({ ...current, about_paragraph_one: event.target.value }))
+                }
+                className="min-h-[130px] w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">About Paragraph 2</span>
+              <textarea
+                value={profile.about_paragraph_two}
+                onChange={(event) =>
+                  setProfile((current) => ({ ...current, about_paragraph_two: event.target.value }))
+                }
+                className="min-h-[130px] w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">About Portrait URL</span>
+              <input
+                value={profile.about_portrait_url}
+                onChange={(event) =>
+                  setProfile((current) => ({ ...current, about_portrait_url: event.target.value }))
+                }
+                className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">CV Bucket</span>
+              <input
+                value={profile.cv_bucket}
+                onChange={(event) =>
+                  setProfile((current) => ({ ...current, cv_bucket: event.target.value }))
+                }
+                className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+              />
+            </label>
+
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">CV Path</span>
+              <input
+                value={profile.cv_path}
+                onChange={(event) =>
+                  setProfile((current) => ({ ...current, cv_path: event.target.value }))
+                }
+                className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+              />
+            </label>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <h3 className="text-sm font-medium text-zinc-200">Social Reach and Links</h3>
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="space-y-1">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Instagram Handle</span>
+                <input
+                  value={social.instagram_handle}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, instagram_handle: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Instagram Followers</span>
+                <input
+                  value={social.instagram_followers}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, instagram_followers: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+
+              <label className="space-y-1 md:col-span-2">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Instagram URL</span>
+                <input
+                  value={social.instagram_url}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, instagram_url: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">TikTok Handle</span>
+                <input
+                  value={social.tiktok_handle}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, tiktok_handle: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">TikTok Followers</span>
+                <input
+                  value={social.tiktok_followers}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, tiktok_followers: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+
+              <label className="space-y-1 md:col-span-2">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">TikTok URL</span>
+                <input
+                  value={social.tiktok_url}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, tiktok_url: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">LinkedIn Handle</span>
+                <input
+                  value={social.linkedin_handle}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, linkedin_handle: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">LinkedIn Followers</span>
+                <input
+                  value={social.linkedin_followers}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, linkedin_followers: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+
+              <label className="space-y-1 md:col-span-2">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">LinkedIn URL</span>
+                <input
+                  value={social.linkedin_url}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, linkedin_url: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">YouTube URL</span>
+                <input
+                  value={social.youtube_url}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, youtube_url: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs uppercase tracking-[0.1em] text-zinc-400">Total Views Label</span>
+                <input
+                  value={social.total_views_label}
+                  onChange={(event) =>
+                    setSocial((current) => ({ ...current, total_views_label: event.target.value }))
+                  }
+                  className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
+                />
+              </label>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <p className="text-sm text-zinc-400">These values power About, Contact, footer, and social blocks.</p>
           <button
             type="button"
             onClick={() => void saveProfile()}
@@ -375,7 +523,7 @@ export function SettingsManager({
             className="inline-flex items-center gap-1 rounded-md bg-[#e8c547] px-3 py-2 text-sm font-medium text-black disabled:opacity-70"
           >
             <Save className="h-4 w-4" />
-            {isSavingProfile ? "Saving..." : "Save Profile"}
+            {isSavingProfile ? "Saving..." : "Save Settings"}
           </button>
         </div>
 
@@ -430,5 +578,4 @@ export function SettingsManager({
   );
 }
 
-export type { ProfileSettings, StorageUsage };
-export type { SocialStatsSettings };
+export type { StorageUsage };
