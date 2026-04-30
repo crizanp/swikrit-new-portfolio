@@ -6,6 +6,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Play, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  resolvePortfolioEmbedUrl,
+  resolvePortfolioThumbnailUrl,
+} from "@/lib/portfolio-media";
 import { gsap, registerGsapPlugins } from "@/lib/animations/gsap";
 import type { PortfolioItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -42,53 +46,6 @@ function toDisplayCategory(value: string | null | undefined) {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-}
-
-function extractIframeSrc(iframeText: string) {
-  const srcMatch = iframeText.match(/src=[\"']([^\"']+)[\"']/i);
-  return srcMatch?.[1] ?? null;
-}
-
-function toEmbedUrl(item: PortfolioItem) {
-  if (item.video_embed) {
-    if (item.video_embed.includes("<iframe")) {
-      const src = extractIframeSrc(item.video_embed);
-      if (src) {
-        return src;
-      }
-    }
-
-    if (item.video_embed.startsWith("http")) {
-      return item.video_embed;
-    }
-  }
-
-  if (!item.video_url) {
-    return null;
-  }
-
-  try {
-    const url = new URL(item.video_url);
-
-    if (url.hostname.includes("youtu.be")) {
-      const id = url.pathname.replace("/", "");
-      return id ? `https://www.youtube.com/embed/${id}` : item.video_url;
-    }
-
-    if (url.hostname.includes("youtube.com")) {
-      const id = url.searchParams.get("v");
-      return id ? `https://www.youtube.com/embed/${id}` : item.video_url;
-    }
-
-    if (url.hostname.includes("vimeo.com")) {
-      const id = url.pathname.split("/").filter(Boolean).at(-1);
-      return id ? `https://player.vimeo.com/video/${id}` : item.video_url;
-    }
-
-    return item.video_url;
-  } catch {
-    return item.video_url;
-  }
 }
 
 export function WorkPortfolioClient({ items, activeCategory }: WorkPortfolioClientProps) {
@@ -167,7 +124,7 @@ export function WorkPortfolioClient({ items, activeCategory }: WorkPortfolioClie
     };
   }, [selected]);
 
-  const embedUrl = selected ? toEmbedUrl(selected) : null;
+  const embedUrl = selected ? resolvePortfolioEmbedUrl(selected) : null;
 
   return (
     <>
@@ -204,57 +161,75 @@ export function WorkPortfolioClient({ items, activeCategory }: WorkPortfolioClie
         </div>
       ) : (
         <div className="columns-1 gap-5 md:columns-2 xl:columns-3">
-          {filteredItems.map((item, index) => (
-            <article
-              key={item.id}
-              ref={(node) => {
-                cardRefs.current[index] = node;
-              }}
-              className="mb-5 break-inside-avoid overflow-hidden rounded-2xl border border-border/70 bg-card/80"
-            >
-              <button
-                type="button"
-                onClick={() => setSelected(item)}
-                className="group relative block w-full text-left"
-              >
-                <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-brand/25 via-background to-background">
-                  {item.thumbnail_url ? (
-                    <Image
-                      src={item.thumbnail_url}
-                      alt={item.title}
-                      fill
-                      sizes="(max-width: 1280px) 100vw, 33vw"
-                      className="object-cover transition duration-300 group-hover:scale-105"
-                    />
-                  ) : null}
-                  <div className="absolute inset-0 bg-black/25" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-black/65 text-white shadow-lg">
-                      <Play className="h-5 w-5" />
-                    </span>
-                  </div>
-                  <div className="absolute left-3 top-3">
-                    <Badge variant="brand">{toDisplayCategory(item.category)}</Badge>
-                  </div>
-                </div>
-              </button>
+          {filteredItems.map((item, index) => {
+            const thumbnailUrl = resolvePortfolioThumbnailUrl(item);
 
-              <div className="space-y-3 p-4">
-                <h3 className="text-lg font-semibold">{item.title}</h3>
-                <p className="text-sm text-muted-foreground">{item.client ?? "Independent project"}</p>
-                <div className="flex flex-wrap gap-2">
-                  {(item.tags ?? []).map((tag) => (
-                    <span
-                      key={`${item.id}-${tag}`}
-                      className="rounded-full border border-border/80 px-2 py-1 text-xs text-muted-foreground"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+            return (
+              <article
+                key={item.id}
+                ref={(node) => {
+                  cardRefs.current[index] = node;
+                }}
+                className="mb-5 break-inside-avoid overflow-hidden rounded-2xl border border-border/70 bg-card/80"
+              >
+                {thumbnailUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelected(item)}
+                    className="group relative block w-full text-left"
+                  >
+                    <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-brand/25 via-background to-background">
+                      <Image
+                        src={thumbnailUrl}
+                        alt={item.title}
+                        fill
+                        sizes="(max-width: 1280px) 100vw, 33vw"
+                        className="object-cover transition duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/25" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-black/65 text-white shadow-lg">
+                          <Play className="h-5 w-5" />
+                        </span>
+                      </div>
+                      <div className="absolute left-3 top-3">
+                        <Badge variant="brand">{toDisplayCategory(item.category)}</Badge>
+                      </div>
+                    </div>
+                  </button>
+                ) : null}
+
+                <div className="space-y-3 p-4">
+                  {!thumbnailUrl ? (
+                    <Badge variant="brand" className="w-fit">
+                      {toDisplayCategory(item.category)}
+                    </Badge>
+                  ) : null}
+                  <h3 className="text-lg font-semibold">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.client ?? "Independent project"}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(item.tags ?? []).map((tag) => (
+                      <span
+                        key={`${item.id}-${tag}`}
+                        className="rounded-full border border-border/80 px-2 py-1 text-xs text-muted-foreground"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelected(item)}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-brand"
+                  >
+                    Preview Project
+                    <Play className="h-4 w-4" />
+                  </button>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
 

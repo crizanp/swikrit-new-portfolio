@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Clapperboard,
@@ -16,8 +17,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildOgImageUrl, createBreadcrumbJsonLd } from "@/lib/seo";
-import { getPublicSiteSettings, getSiteStats, getSocialPosts, getTestimonials } from "@/lib/data";
+import { getPublicSiteSettings, getSiteStats, getTestimonials } from "@/lib/data";
 import { getPublicUrl, type SupabaseStorageBucket } from "@/lib/supabase/storage";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "About",
@@ -64,9 +66,8 @@ function resolveCvBucket(value: string): SupabaseStorageBucket {
 }
 
 export default async function AboutPage() {
-  const [stats, socialPosts, testimonials, publicSettings] = await Promise.all([
+  const [stats, testimonials, publicSettings] = await Promise.all([
     getSiteStats(),
-    getSocialPosts(9),
     getTestimonials(true),
     getPublicSiteSettings(),
   ]);
@@ -129,7 +130,12 @@ export default async function AboutPage() {
         </p>
       </section>
 
-      <section className="container grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+      <section
+        className={cn(
+          "container grid gap-6 lg:items-center",
+          profile.about_portrait_url ? "lg:grid-cols-[1fr_0.9fr]" : "lg:grid-cols-1"
+        )}
+      >
         <div className="space-y-4">
           <Badge variant="outline">Full Bio</Badge>
           <p className="text-muted-foreground">
@@ -146,16 +152,19 @@ export default async function AboutPage() {
           </Button>
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-brand/25 via-background to-background p-2">
-          <div className="relative aspect-[4/5] rounded-xl bg-black/20">
-            <img
-              src={profile.about_portrait_url}
-              alt={`${profile.display_name} portrait`}
-              sizes="(max-width: 1024px) 100vw, 40vw"
-              className="rounded-xl object-cover"
-            />
+        {profile.about_portrait_url ? (
+          <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-brand/25 via-background to-background p-2">
+            <div className="relative aspect-[4/5] rounded-xl bg-black/20">
+              <Image
+                src={profile.about_portrait_url}
+                alt={`${profile.display_name} portrait`}
+                fill
+                sizes="(max-width: 1024px) 100vw, 40vw"
+                className="rounded-xl object-cover"
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
       </section>
 
       <section className="container space-y-5">
@@ -240,7 +249,6 @@ export default async function AboutPage() {
       <AboutBelowFold
         statsByKey={statByKey}
         socialStats={social}
-        socialPosts={socialPosts}
         testimonials={testimonials}
       />
     </div>

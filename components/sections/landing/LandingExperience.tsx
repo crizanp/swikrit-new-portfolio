@@ -15,7 +15,10 @@ import {
   ScrollTrigger,
   splitTextWords,
 } from "@/lib/animations/gsap";
-import type { PortfolioItem, Testimonial } from "@/lib/types";
+import { resolvePortfolioThumbnailUrl } from "@/lib/portfolio-media";
+import type { ProfileSettings } from "@/lib/site-settings";
+import type { PortfolioItem, Service, Testimonial } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const HeroBg = dynamic(
   () => import("@/components/three/HeroBg").then((module) => module.HeroBg),
@@ -25,16 +28,13 @@ const HeroBg = dynamic(
 interface LandingExperienceProps {
   featuredWork: PortfolioItem[];
   testimonials: Testimonial[];
+  services: Service[];
+  statsByKey: Record<string, string>;
+  profile: ProfileSettings;
 }
 
 const marqueeText =
   "VIDEO EDITING ✦ MOTION GRAPHICS ✦ AFTER EFFECTS ✦ COLOR GRADING ✦ VISUAL EFFECTS ✦ STORYTELLING ✦ PREMIERE PRO ✦ DAVINCI RESOLVE ✦ CINEMA 4D ✦";
-
-const heroStats = [
-  { value: 3, suffix: "+", label: "Years" },
-  { value: 150, suffix: "+", label: "Projects" },
-  { value: 12, suffix: "M+", label: "Views" },
-];
 
 const skills = [
   { label: "Adobe Premiere Pro", value: 98, icon: "🎬" },
@@ -45,38 +45,79 @@ const skills = [
   { label: "Photoshop / Illustrator", value: 90, icon: "🖌️" },
 ];
 
-const serviceTeasers = [
-  {
-    icon: "🎥",
-    title: "Video Editing",
-    description: "Commercial cuts, social reels, and campaign stories with fast turnarounds.",
-    price: "Starts at $220",
-  },
-  {
-    icon: "⚡",
-    title: "Motion Graphics",
-    description: "Custom title systems, transitions, and branded animation kits.",
-    price: "Starts at $300",
-  },
-  {
-    icon: "🎞️",
-    title: "Color Grading",
-    description: "Balanced cinematic grades designed for platform consistency.",
-    price: "Starts at $180",
-  },
-  {
-    icon: "🧪",
-    title: "After Effects VFX",
-    description: "Stylized composites and visual polish for high-impact storytelling.",
-    price: "Starts at $350",
-  },
-];
+function parseStatValue(rawValue: string | undefined, fallbackValue: number, fallbackSuffix: string) {
+  const normalized = rawValue?.trim();
 
-function resolveProjectLink(item: PortfolioItem) {
-  return item.video_url ?? item.video_embed ?? "/work";
+  if (!normalized) {
+    return { value: fallbackValue, suffix: fallbackSuffix };
+  }
+
+  const parts = normalized.match(/^(\d+(?:\.\d+)?)(.*)$/);
+
+  if (!parts) {
+    return { value: fallbackValue, suffix: fallbackSuffix };
+  }
+
+  const numericValue = Number(parts[1]);
+
+  if (!Number.isFinite(numericValue)) {
+    return { value: fallbackValue, suffix: fallbackSuffix };
+  }
+
+  return {
+    value: numericValue,
+    suffix: parts[2] ?? "",
+  };
 }
 
-export function LandingExperience({ featuredWork, testimonials }: LandingExperienceProps) {
+function isLikelyEmoji(value: string) {
+  return Array.from(value).some((char) => {
+    const codePoint = char.codePointAt(0) ?? 0;
+    return codePoint >= 0x1f000;
+  });
+}
+
+function resolveServiceGlyph(icon: string | null | undefined) {
+  const normalized = icon?.trim() ?? "";
+
+  if (!normalized) {
+    return "🎬";
+  }
+
+  if (isLikelyEmoji(normalized)) {
+    return normalized;
+  }
+
+  const token = normalized.toLowerCase();
+  const iconMap: Record<string, string> = {
+    clapperboard: "🎬",
+    sparkles: "✨",
+    palette: "🎨",
+    film: "🎞️",
+    vfx: "🧪",
+    wandsparkles: "🪄",
+    "wand-sparkles": "🪄",
+    smartphone: "📱",
+    mobile: "📱",
+    phone: "📱",
+    video: "🎥",
+    scissors: "✂️",
+  };
+
+  return iconMap[token] ?? "🎬";
+}
+
+function resolveProjectLink(item: PortfolioItem) {
+  return item.video_url ?? item.video_embed ?? `/work/${item.id}`;
+}
+
+export function LandingExperience({
+  featuredWork,
+  testimonials,
+  services,
+  statsByKey,
+  profile,
+}: LandingExperienceProps) {
   const heroSectionRef = useRef<HTMLElement | null>(null);
   const swikritRef = useRef<HTMLHeadingElement | null>(null);
   const pokhrelRef = useRef<HTMLHeadingElement | null>(null);
@@ -91,6 +132,49 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
   const featuredGridRef = useRef<HTMLDivElement | null>(null);
   const testimonialTrackRef = useRef<HTMLDivElement | null>(null);
   const gradientHeadingRef = useRef<HTMLHeadingElement | null>(null);
+
+  const nameParts = profile.display_name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const firstName = (nameParts[0] ?? "Swikrit").toUpperCase();
+  const lastName = (nameParts.slice(1).join(" ") || "Pokhrel").toUpperCase();
+  const subtitleLabel = profile.title.toUpperCase();
+
+  const heroStats = useMemo(
+    () => [
+      {
+        ...parseStatValue(statsByKey.years_experience, 3, "+"),
+        label: "Years",
+      },
+      {
+        ...parseStatValue(statsByKey.projects_done, 150, "+"),
+        label: "Projects",
+      },
+      {
+        ...parseStatValue(statsByKey.views_generated, 12, "M+"),
+        label: "Views",
+      },
+    ],
+    [statsByKey]
+  );
+
+  const serviceTeasers = useMemo(
+    () =>
+      services
+        .filter((service) => service.is_active !== false)
+        .slice(0, 4)
+        .map((service) => ({
+          id: service.id,
+          icon: resolveServiceGlyph(service.icon),
+          title: service.title,
+          description:
+            service.description ??
+            "Tailored delivery for high-impact content and campaign storytelling.",
+          price: service.price_range ?? "Custom Quote",
+        })),
+    [services]
+  );
 
   const featuredItems = useMemo(() => {
     const filtered = featuredWork.filter((item) => item.is_featured !== false);
@@ -138,7 +222,7 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
       return;
     }
 
-    const subtitle = "AFTER EFFECTS ART";
+    const subtitle = subtitleLabel;
     const heroMetaItems = Array.from(
       heroSection.querySelectorAll<HTMLElement>(".hero-meta")
     );
@@ -247,7 +331,7 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
         }
       });
     };
-  }, []);
+  }, [heroStats, subtitleLabel]);
 
   useEffect(() => {
     const reduceMotion = prefersReducedMotion();
@@ -488,13 +572,13 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
                 ref={swikritRef}
                 className="font-heading text-4xl font-bold uppercase tracking-[0.12em] sm:text-6xl lg:text-7xl"
               >
-                SWIKRIT
+                {firstName}
               </h1>
               <h1
                 ref={pokhrelRef}
                 className="font-heading text-4xl font-bold uppercase tracking-[0.12em] text-brand sm:text-6xl lg:text-7xl"
               >
-                POKHREL
+                {lastName}
               </h1>
             </div>
 
@@ -508,7 +592,7 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
             <div className="hero-meta mt-8 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-brand" />
-                Based in Nepal · Available Worldwide
+                {profile.location_label}
               </span>
             </div>
 
@@ -573,7 +657,12 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
       </section>
 
       <section className="container py-20" data-cursor-tone="dark">
-        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+        <div
+          className={cn(
+            "grid gap-8 lg:items-start",
+            profile.about_portrait_url ? "lg:grid-cols-[1.15fr_0.85fr]" : "lg:grid-cols-1"
+          )}
+        >
           <div>
             <Badge variant="brand" className="mb-4 w-fit">
               Video Editor · Motion Designer
@@ -582,28 +671,35 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
               ref={aboutHeadingRef}
               className="font-heading text-4xl font-bold leading-tight sm:text-5xl"
             >
-              Hey, I&apos;m Swikrit Pokhrel
+              Hey, I&apos;m {profile.display_name}
             </h2>
             <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-              I craft high-energy edits and motion graphics for brands, artists, and
-              agencies who want visual storytelling that actually moves people.
-              My process is fast, collaborative, and built for modern distribution
-              across paid and organic channels.
+              {profile.bio}
             </p>
           </div>
 
-          <div className="relative mx-auto h-[420px] w-full max-w-sm">
-            <div className="absolute inset-0 rounded-[1.8rem] border border-brand/40 bg-gradient-to-br from-brand/10 via-black/10 to-black/80 shadow-[0_0_55px_hsl(var(--brand)/0.35)]" />
-            <div className="absolute inset-4 rounded-[1.4rem] border border-border/70 bg-gradient-to-br from-card via-surface to-black/90" />
-            <div className="absolute inset-0 flex items-center justify-center text-center">
-              <div className="space-y-2 px-6">
-              <img src="https://i.postimg.cc/3x4fNFjP/swikrit.jpg" alt="Swikrit Pokhrel" className="mx-auto h-48 w-48 rounded-full object-cover" />
-                <p className="text-sm italic text-muted-foreground">
-                  &ldquo;A passionate video editor and motion designer with a knack for storytelling through visuals. With over 3 years of experience, I specialize in crafting dynamic edits and motion graphics that captivate audiences and elevate brands. My work is driven by a love for creativity, attention to detail, and a commitment to delivering high-quality content that resonates across platforms.&rdquo;
-                </p>
+          {profile.about_portrait_url ? (
+            <div className="relative mx-auto h-[420px] w-full max-w-sm">
+              <div className="absolute inset-0 rounded-[1.8rem] border border-brand/40 bg-gradient-to-br from-brand/10 via-black/10 to-black/80 shadow-[0_0_55px_hsl(var(--brand)/0.35)]" />
+              <div className="absolute inset-4 rounded-[1.4rem] border border-border/70 bg-gradient-to-br from-card via-surface to-black/90" />
+              <div className="absolute inset-0 flex items-center justify-center text-center">
+                <div className="space-y-2 px-6">
+                  <div className="relative mx-auto h-48 w-48 overflow-hidden rounded-full border border-border/70">
+                    <Image
+                      src={profile.about_portrait_url}
+                      alt={`${profile.display_name} portrait`}
+                      fill
+                      sizes="192px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <p className="text-sm italic text-muted-foreground">
+                    &ldquo;{profile.about_intro}&rdquo;
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </section>
 
@@ -656,40 +752,38 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
         <div ref={featuredGridRef} className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {featuredItems.map((item, index) => {
             const projectUrl = resolveProjectLink(item);
-            const hasImage = Boolean(item.thumbnail_url);
+            const thumbnailUrl = resolvePortfolioThumbnailUrl(item);
+            const isExternal = projectUrl.startsWith("http");
 
             return (
               <article
                 key={`${item.id}-${index}`}
                 className="featured-card group relative overflow-hidden rounded-2xl border border-border/70 bg-card"
               >
-                <div className="relative h-64 overflow-hidden">
-                  {hasImage ? (
+                {thumbnailUrl ? (
+                  <div className="relative h-64 overflow-hidden">
                     <Image
-                      src={item.thumbnail_url as string}
+                      src={thumbnailUrl}
                       alt={item.title}
                       fill
                       sizes="(max-width: 1280px) 100vw, 33vw"
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
                     />
-                  ) : (
-                    <div className="h-full w-full bg-[radial-gradient(circle_at_20%_20%,hsl(var(--brand)/0.35),transparent_35%),linear-gradient(130deg,hsl(var(--surface)),black)] transition-transform duration-500 group-hover:scale-110" />
-                  )}
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    <MagneticButton
-                      href={projectUrl}
-                      variant="brand"
-                      size="sm"
-                      target={projectUrl.startsWith("http") ? "_blank" : undefined}
-                      rel={projectUrl.startsWith("http") ? "noreferrer" : undefined}
-                    >
-                      View Project
-                    </MagneticButton>
-                    <ArrowUpRight className="h-5 w-5 text-white" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <MagneticButton
+                        href={projectUrl}
+                        variant="brand"
+                        size="sm"
+                        target={isExternal ? "_blank" : undefined}
+                        rel={isExternal ? "noreferrer" : undefined}
+                      >
+                        View Project
+                      </MagneticButton>
+                      <ArrowUpRight className="h-5 w-5 text-white" />
+                    </div>
                   </div>
-                </div>
+                ) : null}
 
                 <CardContent className="space-y-3 p-5">
                   <Badge variant="outline" className="w-fit capitalize">
@@ -697,6 +791,17 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
                   </Badge>
                   <h4 className="font-heading text-xl font-semibold leading-tight">{item.title}</h4>
                   <p className="text-sm text-muted-foreground">{item.client ?? "Independent Client"}</p>
+                  {!thumbnailUrl ? (
+                    <MagneticButton
+                      href={projectUrl}
+                      variant="outline"
+                      size="sm"
+                      target={isExternal ? "_blank" : undefined}
+                      rel={isExternal ? "noreferrer" : undefined}
+                    >
+                      View Project
+                    </MagneticButton>
+                  ) : null}
                 </CardContent>
               </article>
             );
@@ -712,26 +817,32 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
           </MagneticButton>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {serviceTeasers.map((service) => (
-            <div key={service.title} className="group [perspective:1200px]">
-              <div className="relative h-72 w-full rounded-2xl transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-                <div className="absolute inset-0 rounded-2xl border border-border/70 bg-card/80 p-5 [backface-visibility:hidden]">
-                  <div className="text-4xl" aria-hidden="true">
-                    {service.icon}
+        {serviceTeasers.length > 0 ? (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {serviceTeasers.map((service) => (
+              <div key={service.id} className="group [perspective:1200px]">
+                <div className="relative h-72 w-full rounded-2xl transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                  <div className="absolute inset-0 rounded-2xl border border-border/70 bg-card/80 p-5 [backface-visibility:hidden]">
+                    <div className="text-4xl" aria-hidden="true">
+                      {service.icon}
+                    </div>
+                    <h4 className="mt-8 font-heading text-2xl font-semibold">{service.title}</h4>
+                    <p className="mt-3 text-sm text-muted-foreground">Hover to explore details</p>
                   </div>
-                  <h4 className="mt-8 font-heading text-2xl font-semibold">{service.title}</h4>
-                  <p className="mt-3 text-sm text-muted-foreground">Hover to explore details</p>
-                </div>
 
-                <div className="absolute inset-0 rounded-2xl border border-brand/35 bg-gradient-to-br from-brand/15 via-card to-surface p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                  <p className="text-sm text-muted-foreground">{service.description}</p>
-                  <p className="mt-8 font-heading text-xl font-semibold text-brand">{service.price}</p>
+                  <div className="absolute inset-0 rounded-2xl border border-brand/35 bg-gradient-to-br from-brand/15 via-card to-surface p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                    <p className="text-sm text-muted-foreground">{service.description}</p>
+                    <p className="mt-8 font-heading text-xl font-semibold text-brand">{service.price}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 p-8 text-center text-sm text-muted-foreground">
+            Services will appear here after you add them in the admin panel.
+          </div>
+        )}
       </section>
 
       <section className="overflow-hidden pb-20" data-cursor-tone="dark">
@@ -739,31 +850,39 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
           <h3 className="font-heading text-3xl font-bold sm:text-4xl">Testimonials</h3>
         </div>
 
-        <div className="relative overflow-hidden">
-          <div ref={testimonialTrackRef} className="flex w-max gap-5 px-4 md:px-8">
-            {[...testimonialItems, ...testimonialItems].map((item, index) => (
-              <Card
-                key={`${item.id}-${index}`}
-                className="w-[320px] shrink-0 border-border/70 bg-card/80"
-              >
-                <CardContent className="space-y-4 p-6">
-                  <div className="flex items-center gap-1 text-brand">
-                    {Array.from({ length: item.rating ?? 5 }).map((_, i) => (
-                      <Star key={`${item.id}-star-${i}`} className="h-4 w-4 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground">&ldquo;{item.content}&rdquo;</p>
-                  <div>
-                    <p className="font-semibold">{item.client_name}</p>
-                    <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">
-                      {item.client_role ?? "Client"}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        {testimonialItems.length > 0 ? (
+          <div className="relative overflow-hidden">
+            <div ref={testimonialTrackRef} className="flex w-max gap-5 px-4 md:px-8">
+              {[...testimonialItems, ...testimonialItems].map((item, index) => (
+                <Card
+                  key={`${item.id}-${index}`}
+                  className="w-[320px] shrink-0 border-border/70 bg-card/80"
+                >
+                  <CardContent className="space-y-4 p-6">
+                    <div className="flex items-center gap-1 text-brand">
+                      {Array.from({ length: item.rating ?? 5 }).map((_, i) => (
+                        <Star key={`${item.id}-star-${i}`} className="h-4 w-4 fill-current" />
+                      ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground">&ldquo;{item.content}&rdquo;</p>
+                    <div>
+                      <p className="font-semibold">{item.client_name}</p>
+                      <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">
+                        {item.client_role ?? "Client"}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="container">
+            <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 p-8 text-center text-sm text-muted-foreground">
+              Testimonials will appear here after you add them in the admin panel.
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="relative isolate overflow-hidden bg-black py-20" data-cursor-tone="dark">
@@ -786,10 +905,10 @@ export function LandingExperience({ featuredWork, testimonials }: LandingExperie
               Get In Touch
             </MagneticButton>
             <a
-              href="mailto:swikritpokhrel@gmail.com"
+              href={`mailto:${profile.contact_email}`}
               className="rounded-lg border border-border/70 px-4 py-2 text-sm text-muted-foreground transition hover:text-foreground"
             >
-              swikritpokhrel@gmail.com
+              {profile.contact_email}
             </a>
           </div>
         </div>

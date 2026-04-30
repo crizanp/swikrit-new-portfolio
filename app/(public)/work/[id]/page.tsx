@@ -5,6 +5,10 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { siteConfig } from "@/lib/constants";
 import { getPortfolioItemById } from "@/lib/data";
+import {
+  resolvePortfolioEmbedUrl,
+  resolvePortfolioThumbnailUrl,
+} from "@/lib/portfolio-media";
 import { buildOgImageUrl, createBreadcrumbJsonLd } from "@/lib/seo";
 
 interface WorkItemPageProps {
@@ -49,17 +53,6 @@ export async function generateMetadata({ params }: WorkItemPageProps): Promise<M
   };
 }
 
-function resolveEmbedUrl(embedCode: string | null, videoUrl: string | null) {
-  if (embedCode && embedCode.includes("src=")) {
-    const srcMatch = embedCode.match(/src=["']([^"']+)["']/i);
-    if (srcMatch?.[1]) {
-      return srcMatch[1];
-    }
-  }
-
-  return videoUrl;
-}
-
 export default async function WorkItemPage({ params }: WorkItemPageProps) {
   const item = await getPortfolioItemById(params.id);
 
@@ -67,7 +60,8 @@ export default async function WorkItemPage({ params }: WorkItemPageProps) {
     notFound();
   }
 
-  const embedUrl = resolveEmbedUrl(item.video_embed, item.video_url);
+  const embedUrl = resolvePortfolioEmbedUrl(item);
+  const thumbnailUrl = resolvePortfolioThumbnailUrl(item);
   const breadcrumbSchema = createBreadcrumbJsonLd([
     { name: "Home", path: "/" },
     { name: "Work", path: "/work" },
@@ -97,10 +91,10 @@ export default async function WorkItemPage({ params }: WorkItemPageProps) {
               allowFullScreen
             />
           </div>
-        ) : item.thumbnail_url ? (
+        ) : thumbnailUrl ? (
           <div className="relative aspect-video overflow-hidden rounded-2xl border border-border/70">
             <Image
-              src={item.thumbnail_url}
+              src={thumbnailUrl}
               alt={`${item.title} thumbnail`}
               fill
               priority

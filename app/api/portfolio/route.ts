@@ -2,10 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
 import { fallbackPortfolio } from "@/lib/constants";
 import {
+  normalizeOptionalUrl,
+  resolvePortfolioThumbnailUrl,
+  withResolvedPortfolioThumbnail,
+} from "@/lib/portfolio-media";
+import {
   isSchemaNotReadyError,
   schemaNotReadyWriteResponse,
 } from "@/lib/supabase/error-utils";
 import { createClient } from "@/lib/supabase/server";
+
+function hasOwn(payload: object, key: string) {
+  return Object.prototype.hasOwnProperty.call(payload, key);
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,7 +59,8 @@ export async function GET(request: NextRequest) {
 
             return featuredMatch && categoryMatch;
           })
-          .slice(0, Number.isFinite(limit) && limit > 0 ? limit : undefined);
+          .slice(0, Number.isFinite(limit) && limit > 0 ? limit : undefined)
+          .map(withResolvedPortfolioThumbnail);
 
         return NextResponse.json({ data: fallback }, { status: 200 });
       }
@@ -58,7 +68,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ data: data ?? [] }, { status: 200 });
+    return NextResponse.json({ data: (data ?? []).map(withResolvedPortfolioThumbnail) }, { status: 200 });
   } catch {
     return NextResponse.json(
       { error: "Unable to fetch portfolio items." },
@@ -81,9 +91,9 @@ export async function POST(request: NextRequest) {
       description?: string;
       category?: string;
       client?: string;
-      thumbnail_url?: string;
-      video_url?: string;
-      video_embed?: string;
+      thumbnail_url?: string | null;
+      video_url?: string | null;
+      video_embed?: string | null;
       tags?: string[];
       is_featured?: boolean;
       display_order?: number;
@@ -96,9 +106,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const insertPayload = { ...payload };
+
+    if (hasOwn(insertPayload, "thumbnail_url")) {
+      insertPayload.thumbnail_url = normalizeOptionalUrl(insertPayload.thumbnail_url) ?? undefined;
+    }
+
+    if (hasOwn(insertPayload, "video_url")) {
+      insertPayload.video_url = normalizeOptionalUrl(insertPayload.video_url) ?? undefined;
+    }
+
+    if (hasOwn(insertPayload, "video_embed")) {
+      insertPayload.video_embed = normalizeOptionalUrl(insertPayload.video_embed) ?? undefined;
+    }
+
+    const generatedThumbnail = resolvePortfolioThumbnailUrl({
+      thumbnail_url: insertPayload.thumbnail_url ?? null,
+      video_url: insertPayload.video_url ?? null,
+      video_embed: insertPayload.video_embed ?? null,
+    });
+
+    if (!insertPayload.thumbnail_url && generatedThumbnail) {
+      insertPayload.thumbnail_url = generatedThumbnail;
+    }
+
     const { data, error } = await supabase
       .from("portfolio_items")
-      .insert(payload)
+      .insert(insertPayload)
       .select("*")
       .single();
 
@@ -110,7 +144,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ data }, { status: 201 });
+    return NextResponse.json({ data: data ? withResolvedPortfolioThumbnail(data) : data }, { status: 201 });
   } catch {
     return NextResponse.json(
       { error: "Unable to create portfolio item." },

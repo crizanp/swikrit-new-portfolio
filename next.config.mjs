@@ -13,6 +13,8 @@ const imageHostnames = [
 	"images.unsplash.com",
 	"i.ytimg.com",
 	"img.youtube.com",
+	"vumbnail.com",
+	"www.dailymotion.com",
 ].filter(Boolean);
 
 const nextConfig = {
@@ -43,7 +45,7 @@ const nextConfig = {
 					{
 						key: "Content-Security-Policy",
 						value:
-							"default-src 'self'; base-uri 'self'; frame-ancestors 'self'; object-src 'none'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; font-src 'self' data: https:; connect-src 'self' https: wss:; frame-src 'self' https://www.youtube.com https://player.vimeo.com https://www.instagram.com https://www.tiktok.com; upgrade-insecure-requests",
+							"default-src 'self'; base-uri 'self'; frame-ancestors 'self'; object-src 'none'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; font-src 'self' data: https:; connect-src 'self' https: wss:; frame-src 'self' https://www.youtube.com https://player.vimeo.com https://www.instagram.com https://www.tiktok.com https://www.dailymotion.com; upgrade-insecure-requests",
 					},
 				],
 			},

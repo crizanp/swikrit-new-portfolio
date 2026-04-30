@@ -20,6 +20,7 @@ export const navigationLinks = [
   { href: "/work", label: "Work" },
   { href: "/services", label: "Services" },
   { href: "/about", label: "About" },
+  { href: "/social", label: "Social" },
   { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
 ];

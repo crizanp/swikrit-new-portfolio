@@ -14,6 +14,7 @@ import {
   type ProfileSettings,
   type SocialStatsSettings,
 } from "@/lib/site-settings";
+import { withResolvedPortfolioThumbnail } from "@/lib/portfolio-media";
 import { createClient } from "@/lib/supabase/server";
 import type {
   BlogPost,
@@ -89,7 +90,7 @@ export async function getPortfolioItems(options?: {
       throw error;
     }
 
-    const items = (data ?? []) as PortfolioItem[];
+    const items = ((data ?? []) as PortfolioItem[]).map(withResolvedPortfolioThumbnail);
     if (items.length > 0) {
       return items;
     }
@@ -103,7 +104,8 @@ export async function getPortfolioItems(options?: {
       return featuredMatch && categoryMatch;
     });
 
-    return options?.limit ? fallback.slice(0, options.limit) : fallback;
+    const mappedFallback = fallback.map(withResolvedPortfolioThumbnail);
+    return options?.limit ? mappedFallback.slice(0, options.limit) : mappedFallback;
   } catch {
     const fallback = fallbackPortfolio.filter((item) => {
       const featuredMatch = featuredOnly ? item.is_featured : true;
@@ -114,7 +116,8 @@ export async function getPortfolioItems(options?: {
       return featuredMatch && categoryMatch;
     });
 
-    return options?.limit ? fallback.slice(0, options.limit) : fallback;
+    const mappedFallback = fallback.map(withResolvedPortfolioThumbnail);
+    return options?.limit ? mappedFallback.slice(0, options.limit) : mappedFallback;
   }
 }
 
@@ -132,12 +135,14 @@ export async function getPortfolioItemById(id: string) {
     }
 
     if (data) {
-      return data as PortfolioItem;
+      return withResolvedPortfolioThumbnail(data as PortfolioItem);
     }
 
-    return fallbackPortfolio.find((item) => item.id === id) ?? null;
+    const fallback = fallbackPortfolio.find((item) => item.id === id) ?? null;
+    return fallback ? withResolvedPortfolioThumbnail(fallback) : null;
   } catch {
-    return fallbackPortfolio.find((item) => item.id === id) ?? null;
+    const fallback = fallbackPortfolio.find((item) => item.id === id) ?? null;
+    return fallback ? withResolvedPortfolioThumbnail(fallback) : null;
   }
 }
 

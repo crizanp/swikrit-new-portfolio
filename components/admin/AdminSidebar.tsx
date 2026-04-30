@@ -14,6 +14,7 @@ import {
   Menu,
   Settings,
   Share2,
+  Star,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const links = [
   { href: "/admin/portfolio", label: "Portfolio", icon: Film },
   { href: "/admin/services", label: "Services", icon: Briefcase },
   { href: "/admin/blog", label: "Blog", icon: FileText },
+  { href: "/admin/testimonials", label: "Testimonials", icon: Star },
   { href: "/admin/inquiries", label: "Inquiries", icon: Mail },
   { href: "/admin/social", label: "Social Posts", icon: Share2 },
   { href: "/admin/settings", label: "Settings", icon: Settings },
