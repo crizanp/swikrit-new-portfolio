@@ -8,6 +8,7 @@ import {
   Film,
   FileText,
   LayoutDashboard,
+  Loader2,
   LogOut,
   Mail,
   Menu,
@@ -33,10 +34,18 @@ export function AdminSidebar() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     setIsOpen(false);
+    setIsNavigating(false);
   }, [pathname]);
+
+  useEffect(() => {
+    links.forEach((link) => {
+      router.prefetch(link.href);
+    });
+  }, [router]);
 
   async function handleLogout() {
     setIsLoggingOut(true);
@@ -86,6 +95,11 @@ export function AdminSidebar() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  onClick={() => {
+                    if (pathname !== link.href) {
+                      setIsNavigating(true);
+                    }
+                  }}
                   className={cn(
                     "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition",
                     active
@@ -119,6 +133,15 @@ export function AdminSidebar() {
           className="fixed inset-0 z-[140] bg-black/70 lg:hidden"
           aria-label="Close admin navigation"
         />
+      ) : null}
+
+      {isNavigating ? (
+        <div className="fixed inset-0 z-[170] grid place-items-center bg-black/65 backdrop-blur-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#e8c547]/35 bg-black/85 px-4 py-2 text-sm text-[#e8c547]">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading section...
+          </div>
+        </div>
       ) : null}
     </>
   );

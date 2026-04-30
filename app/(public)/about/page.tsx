@@ -74,22 +74,22 @@ export default async function AboutPage() {
 
   const timeline = [
     {
-      year: "2021",
+      year: "2023",
       title: "Started Freelance Editing",
       description: "Worked with creators and local brands on short-form edits and ad creatives.",
     },
     {
-      year: "2022",
+      year: "2024",
       title: "Expanded Into Motion Graphics",
       description: "Built title systems, animated templates, and branded social kits in After Effects.",
     },
     {
-      year: "2023",
+      year: "2025",
       title: "Scaled to International Clients",
       description: "Partnered with remote teams across campaigns, launch films, and content pipelines.",
     },
     {
-      year: "2024+",
+      year: "2026+",
       title: "Full-Service Post Production",
       description: "Delivering end-to-end edits, VFX polish, and distribution-ready exports worldwide.",
     },

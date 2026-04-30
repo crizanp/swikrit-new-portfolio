@@ -18,6 +18,11 @@ Create `.env.local` with:
 NEXT_PUBLIC_SUPABASE_URL=https://tpoqymhzdegzqhkwcsfy.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_kSA8hYMybn8ki5BEKUK7bA_RHK1Smcj
 NEXT_PUBLIC_SITE_URL=https://swikritpokhrel.com.np
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_S3_ENDPOINT=https://tpoqymhzdegzqhkwcsfy.storage.supabase.co/storage/v1/s3
+SUPABASE_S3_REGION=auto
+SUPABASE_S3_ACCESS_KEY_ID=your_s3_access_key
+SUPABASE_S3_SECRET_ACCESS_KEY=your_s3_secret_key
 ```
 
 Optional for CI/CD and non-local automation:
@@ -33,11 +38,10 @@ VERCEL_PROJECT_ID=your_vercel_project_id
 1. Run SQL from `supabase/migrations/001_initial_schema.sql` in Supabase SQL editor.
 2. Run SQL from `supabase/migrations/002_admin_panel_extensions.sql` in Supabase SQL editor.
 3. If you already ran older migrations before this fix, run `supabase/migrations/003_fix_admin_rls_for_fallback_login.sql` as well.
-4. Create these public storage buckets in Supabase Storage:
-   - `portfolio-videos`
-   - `portfolio-images`
-   - `blog-images`
-   - `avatars`
+4. Run `supabase/migrations/004_expand_site_settings_defaults.sql`.
+5. Run `supabase/migrations/005_create_storage_buckets.sql`.
+
+Storage buckets are now created automatically by migration 005.
 
 ## Admin Login
 

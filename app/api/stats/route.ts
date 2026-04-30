@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest) {
       }>;
     };
 
-    const items = (payload.items ?? [])
+    const normalizedItems = (payload.items ?? [])
       .map((item) => ({
         stat_key: item.stat_key?.trim() ?? "",
         stat_value: item.stat_value?.trim() ?? "",
@@ -61,6 +61,14 @@ export async function PUT(request: NextRequest) {
         updated_at: new Date().toISOString(),
       }))
       .filter((item) => item.stat_key.length > 0);
+
+    const itemMap = new Map<string, (typeof normalizedItems)[number]>();
+    normalizedItems.forEach((item) => {
+      // Last row wins when duplicate stat_key values are submitted.
+      itemMap.set(item.stat_key, item);
+    });
+
+    const items = Array.from(itemMap.values());
 
     if (!items.length) {
       return NextResponse.json({ error: "No valid stats provided." }, { status: 400 });

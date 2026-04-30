@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
 import { createClient } from "@/lib/supabase/server";
-import { uploadFile, type SupabaseStorageBucket } from "@/lib/supabase/storage";
-
-const allowedBuckets = new Set([
-  "portfolio-videos",
-  "portfolio-images",
-  "blog-images",
-  "avatars",
-]);
+import {
+  isAllowedStorageBucket,
+  uploadFile,
+  type SupabaseStorageBucket,
+} from "@/lib/supabase/storage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!allowedBuckets.has(bucket)) {
+    if (!isAllowedStorageBucket(bucket)) {
       return NextResponse.json(
         { error: "Bucket is not allowed." },
         { status: 400 }

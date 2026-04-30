@@ -1,6 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Clapperboard, Sparkles, Palette, Film, WandSparkles, Clock3 } from "lucide-react";
+import {
+  Clapperboard,
+  Sparkles,
+  Palette,
+  Film,
+  WandSparkles,
+  Clock3,
+  Smartphone,
+  Video,
+  Scissors,
+} from "lucide-react";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { ServicesProcess } from "@/components/sections/ServicesProcess";
 import { TestimonialsCarousel } from "@/components/sections/TestimonialsCarousel";
@@ -43,6 +53,58 @@ const servicesBreadcrumb = createBreadcrumbJsonLd([
   { name: "Services", path: "/services" },
 ]);
 
+function isLikelyEmoji(value: string) {
+  const compact = value.trim();
+
+  if (!compact) {
+    return false;
+  }
+
+  return Array.from(compact).some((char) => {
+    const codePoint = char.codePointAt(0) ?? 0;
+    return codePoint >= 0x1f000;
+  });
+}
+
+function resolveServiceIcon(icon: string | null | undefined) {
+  const normalized = icon?.trim() ?? "";
+
+  if (!normalized) {
+    return <Clapperboard className="h-5 w-5" />;
+  }
+
+  const token = normalized.toLowerCase();
+
+  const iconMap: Record<string, JSX.Element> = {
+    clapperboard: <Clapperboard className="h-5 w-5" />,
+    sparkles: <Sparkles className="h-5 w-5" />,
+    palette: <Palette className="h-5 w-5" />,
+    film: <Film className="h-5 w-5" />,
+    vfx: <WandSparkles className="h-5 w-5" />,
+    wandsparkles: <WandSparkles className="h-5 w-5" />,
+    "wand-sparkles": <WandSparkles className="h-5 w-5" />,
+    smartphone: <Smartphone className="h-5 w-5" />,
+    mobile: <Smartphone className="h-5 w-5" />,
+    phone: <Smartphone className="h-5 w-5" />,
+    video: <Video className="h-5 w-5" />,
+    scissors: <Scissors className="h-5 w-5" />,
+  };
+
+  if (iconMap[token]) {
+    return iconMap[token];
+  }
+
+  if (isLikelyEmoji(normalized)) {
+    return (
+      <span className="text-lg leading-none" aria-hidden="true">
+        {normalized}
+      </span>
+    );
+  }
+
+  return <Clapperboard className="h-5 w-5" />;
+}
+
 export default async function ServicesPage() {
   const [services, testimonials] = await Promise.all([
     getServices(true),
@@ -65,14 +127,6 @@ export default async function ServicesPage() {
       "Video editing, motion graphics, and post-production services for modern campaigns.",
   };
 
-  const iconMap: Record<string, JSX.Element> = {
-    clapperboard: <Clapperboard className="h-5 w-5" />,
-    sparkles: <Sparkles className="h-5 w-5" />,
-    palette: <Palette className="h-5 w-5" />,
-    film: <Film className="h-5 w-5" />,
-    vfx: <WandSparkles className="h-5 w-5" />,
-  };
-
   return (
     <div className="space-y-12 pt-12">
       <JsonLd data={servicesBreadcrumb} />
@@ -91,7 +145,7 @@ export default async function ServicesPage() {
           <Card key={service.id} className="border-border/70 bg-card/80">
             <CardHeader className="space-y-3">
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand/20 text-brand">
-                {iconMap[(service.icon ?? "").toLowerCase()] ?? <Clapperboard className="h-5 w-5" />}
+                {resolveServiceIcon(service.icon)}
               </div>
               <CardTitle>{service.title}</CardTitle>
               <p className="text-sm text-muted-foreground">

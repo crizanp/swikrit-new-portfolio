@@ -3,7 +3,7 @@ import {
   type StorageUsage,
 } from "@/components/admin/SettingsManager";
 import { getPublicSiteSettings, getSiteStats } from "@/lib/data";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
   title: "Admin Settings",
@@ -11,7 +11,7 @@ export const metadata = {
 
 async function loadStorageUsage(): Promise<StorageUsage[]> {
   try {
-    const supabase = createClient();
+    const supabase = createAdminClient();
     const buckets = ["portfolio-images", "portfolio-videos", "blog-images", "avatars"];
 
     const bucketRows = await Promise.all(

@@ -1,25 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const buckets = ["portfolio-images", "portfolio-videos", "blog-images", "avatars"];
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
-    const unauthorized = await requireAdminAuth(request, supabase);
+    const authClient = createClient();
+    const unauthorized = await requireAdminAuth(request, authClient);
 
     if (unauthorized) {
       return unauthorized;
     }
 
+    const supabase = createAdminClient();
+
     const usage = await Promise.all(
       buckets.map(async (bucket) => {
-        const { data } = await supabase.storage.from(bucket).list("", {
+        const { data, error } = await supabase.storage.from(bucket).list("", {
           limit: 100,
           offset: 0,
           sortBy: { column: "updated_at", order: "desc" },
         });
+
+        if (error) {
+          return {
+            bucket,
+            totalFiles: 0,
+            totalSize: 0,
+            files: [],
+          };
+        }
 
         const files = (data ?? [])
           .filter((entry) => typeof entry.metadata?.size === "number")

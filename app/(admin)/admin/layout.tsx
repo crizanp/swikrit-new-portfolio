@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ export default function AdminSectionLayout({ children }: { children: ReactNode }
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const isLoginPage = useMemo(() => pathname === "/admin/login", [pathname]);
+  const hasCheckedSessionRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -20,6 +21,15 @@ export default function AdminSectionLayout({ children }: { children: ReactNode }
         setChecking(false);
         return;
       }
+
+      if (hasCheckedSessionRef.current) {
+        setChecking(false);
+        return;
+      }
+
+      hasCheckedSessionRef.current = true;
+
+      const nextPath = pathname || "/admin/dashboard";
 
       let sessionResponse: Response;
 
@@ -34,7 +44,7 @@ export default function AdminSectionLayout({ children }: { children: ReactNode }
           return;
         }
 
-        const params = new URLSearchParams({ next: pathname || "/admin/dashboard" });
+        const params = new URLSearchParams({ next: nextPath });
         router.replace(`/admin/login?${params.toString()}`);
         return;
       }
@@ -44,7 +54,7 @@ export default function AdminSectionLayout({ children }: { children: ReactNode }
       }
 
       if (!sessionResponse.ok) {
-        const params = new URLSearchParams({ next: pathname || "/admin/dashboard" });
+        const params = new URLSearchParams({ next: nextPath });
         router.replace(`/admin/login?${params.toString()}`);
         return;
       }
