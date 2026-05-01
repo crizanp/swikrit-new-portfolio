@@ -145,7 +145,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <CollapsibleTagList tags={post.tags} maxVisible={5} keyPrefix={`${post.id}-header`} />
         <h1 className="max-w-4xl text-4xl font-bold sm:text-5xl">{post.title}</h1>
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <p>{formatDate(post.published_at ?? post.created_at)}</p>
+          {/* <p>{formatDate(post.published_at ?? post.created_at)}</p> */}
           <p>{readTime} min read</p>
         </div>
         {post.cover_image ? (
