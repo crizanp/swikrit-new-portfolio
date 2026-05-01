@@ -4,7 +4,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef } from "react";
 import { animate, stagger } from "animejs";
-import { ArrowDown, ArrowUpRight, MapPin, Sparkles, Star } from "lucide-react";
+import { ArrowDown, ArrowUpRight, MapPin, Quote, Sparkles, Star } from "lucide-react";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -733,23 +733,42 @@ export function LandingExperience({
           </div>
 
           {profile.about_portrait_url ? (
-            <div className="relative mx-auto h-[320px] w-full max-w-sm sm:h-[420px]">
-              <div className="absolute inset-0 rounded-[1.8rem] border border-brand/40 bg-gradient-to-br from-brand/10 via-black/10 to-black/80 shadow-[0_0_55px_hsl(var(--brand)/0.35)]" />
-              <div className="absolute inset-4 rounded-[1.4rem] border border-border/70 bg-gradient-to-br from-card via-surface to-black/90" />
-              <div className="absolute inset-0 flex items-center justify-center text-center">
-                <div className="space-y-2 px-4 sm:px-6">
-                  <div className="relative mx-auto h-40 w-40 overflow-hidden rounded-full border border-border/70 sm:h-48 sm:w-48">
-                    <Image
-                      src={profile.about_portrait_url}
-                      alt={`${profile.display_name} portrait`}
-                      fill
-                      sizes="192px"
-                      className="object-cover object-top"
-                    />
+            <div className="relative mx-auto w-full max-w-sm">
+              <div className="pointer-events-none absolute -inset-4 -z-10 rounded-[2.25rem] bg-[radial-gradient(circle_at_18%_20%,hsl(var(--brand)/0.34),transparent_46%),radial-gradient(circle_at_82%_88%,hsl(var(--brand)/0.2),transparent_50%)] blur-2xl" />
+
+              <div className="relative overflow-hidden rounded-[2rem] border border-brand/45 bg-gradient-to-br from-white via-white/95 to-[#ebe9f6] p-4 shadow-[0_28px_70px_rgba(12,12,18,0.5)] sm:p-5">
+                <div className="relative overflow-hidden rounded-[1.6rem] border border-brand/25 bg-[linear-gradient(136deg,#ffffff_0%,#f5f3ff_44%,#09090f_100%)] px-6 pb-8 pt-7 text-center sm:px-8 sm:pb-9 sm:pt-8">
+                  <div className="pointer-events-none absolute -right-10 -top-8 h-28 w-28 rounded-full bg-brand/20 blur-3xl" />
+                  <div className="pointer-events-none absolute -bottom-12 -left-10 h-36 w-36 rounded-full bg-black/45 blur-3xl" />
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_16%,rgba(255,255,255,0.88),transparent_50%),linear-gradient(145deg,rgba(255,255,255,0.08)_36%,rgba(0,0,0,0.55)_100%)]" />
+
+                  <div className="relative space-y-4">
+                    <div className="relative mx-auto h-40 w-40 sm:h-48 sm:w-48">
+                      <div className="absolute inset-0 rounded-full border border-brand/45 bg-brand/10" />
+                      <div className="absolute inset-[7px] overflow-hidden rounded-full border border-black/35 shadow-[0_14px_38px_rgba(0,0,0,0.38)]">
+                        <Image
+                          src={profile.about_portrait_url}
+                          alt={`${profile.display_name} portrait`}
+                          fill
+                          sizes="192px"
+                          className="object-cover object-top"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="inline-flex items-center gap-2 rounded-full border border-brand/40 bg-brand/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-brand sm:text-[11px]">
+                        <Quote className="h-3.5 w-3.5" />
+                        Featured Intro
+                      </p>
+                      <p className="text-sm italic leading-relaxed text-zinc-700/95 sm:text-base">
+                        &ldquo;{profile.about_intro}&rdquo;
+                      </p>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500 sm:text-xs">
+                        {profile.location_label}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs italic text-muted-foreground sm:text-sm">
-                    &ldquo;{profile.about_intro}&rdquo;
-                  </p>
                 </div>
               </div>
             </div>

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/JsonLd";
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
@@ -12,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getBlogPostBySlug, getRelatedBlogPosts } from "@/lib/data";
 import { siteConfig } from "@/lib/constants";
 import { buildOgImageUrl, createBreadcrumbJsonLd } from "@/lib/seo";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 export const revalidate = 3600;
 
@@ -21,6 +23,40 @@ interface BlogPostPageProps {
     slug: string;
   };
 }
+
+const blogHtmlSchema = {
+  ...defaultSchema,
+  tagNames: [
+    ...(defaultSchema.tagNames ?? []),
+    "div",
+    "span",
+    "mark",
+    "small",
+    "sup",
+    "sub",
+    "u",
+  ],
+  attributes: {
+    ...defaultSchema.attributes,
+    "*": [
+      ...((defaultSchema.attributes?.["*"] as Array<string | [string, ...unknown[]]>) ?? []),
+      "className",
+      "style",
+      "id",
+      "title",
+    ],
+    a: [
+      ...((defaultSchema.attributes?.a as Array<string | [string, ...unknown[]]>) ?? []),
+      "target",
+      "rel",
+    ],
+  },
+  protocols: {
+    ...defaultSchema.protocols,
+    href: ["http", "https", "mailto", "tel"],
+    src: ["http", "https", "data"],
+  },
+} as Parameters<typeof rehypeSanitize>[0];
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const post = await getBlogPostBySlug(params.slug, true);
@@ -68,7 +104,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   const relatedPosts = await getRelatedBlogPosts(post.slug, post.tags ?? null, 3);
   const shareUrl = `${siteConfig.siteUrl}/blog/${post.slug}`;
-  const readTime = Math.max(2, Math.ceil((post.content?.split(/\s+/).length ?? 320) / 200));
+  const contentForReadTime = (post.content ?? post.excerpt ?? "").replace(/<[^>]*>/g, " ");
+  const readTime = Math.max(
+    2,
+    Math.ceil((contentForReadTime.split(/\s+/).filter(Boolean).length || 320) / 200)
+  );
   const breadcrumbSchema = createBreadcrumbJsonLd([
     { name: "Home", path: "/" },
     { name: "Blog", path: "/blog" },
@@ -126,22 +166,77 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <div className="space-y-6 text-muted-foreground">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw, [rehypeSanitize, blogHtmlSchema]]}
             components={{
-              h2: ({ children }) => <h2 className="text-2xl font-semibold text-foreground">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-xl font-semibold text-foreground">{children}</h3>,
-              p: ({ children }) => <p className="leading-relaxed">{children}</p>,
-              a: ({ href, children }) => (
-                <a href={href} target="_blank" rel="noreferrer" className="text-brand underline">
+              h2: ({ className, children, id, style, title }) => (
+                <h2 className={cn("text-2xl font-semibold text-foreground", className)} id={id} style={style} title={title}>
                   {children}
-                </a>
+                </h2>
               ),
-              code: ({ className, children, ...props }) => {
+              h3: ({ className, children, id, style, title }) => (
+                <h3 className={cn("text-xl font-semibold text-foreground", className)} id={id} style={style} title={title}>
+                  {children}
+                </h3>
+              ),
+              p: ({ className, children, id, style, title }) => (
+                <p className={cn("leading-relaxed", className)} id={id} style={style} title={title}>
+                  {children}
+                </p>
+              ),
+              ul: ({ className, children, id, style, title }) => (
+                <ul className={cn("list-disc space-y-2 pl-6", className)} id={id} style={style} title={title}>
+                  {children}
+                </ul>
+              ),
+              ol: ({ className, children, id, style, title }) => (
+                <ol className={cn("list-decimal space-y-2 pl-6", className)} id={id} style={style} title={title}>
+                  {children}
+                </ol>
+              ),
+              li: ({ className, children, id, style, title }) => (
+                <li className={cn("leading-relaxed", className)} id={id} style={style} title={title}>
+                  {children}
+                </li>
+              ),
+              blockquote: ({ className, children, id, style, title }) => (
+                <blockquote
+                  className={cn("border-l-2 border-brand/60 pl-4 italic text-foreground/90", className)}
+                  id={id}
+                  style={style}
+                  title={title}
+                >
+                  {children}
+                </blockquote>
+              ),
+              a: ({ href, className, children, target, rel, id, style, title }) => {
+                const isExternal = typeof href === "string" && /^https?:\/\//i.test(href);
+
+                return (
+                  <a
+                    href={href}
+                    target={target ?? (isExternal ? "_blank" : undefined)}
+                    rel={rel ?? (isExternal ? "noreferrer" : undefined)}
+                    id={id}
+                    style={style}
+                    title={title}
+                    className={cn("text-brand underline underline-offset-4", className)}
+                  >
+                    {children}
+                  </a>
+                );
+              },
+              code: ({ className, children, id, style, title }) => {
                 const match = /language-(\w+)/.exec(className || "");
                 const codeString = String(children).replace(/\n$/, "");
 
                 if (!match) {
                   return (
-                    <code className="rounded bg-secondary/80 px-1.5 py-0.5 text-sm text-foreground" {...props}>
+                    <code
+                      className={cn("rounded bg-secondary/80 px-1.5 py-0.5 text-sm text-foreground", className)}
+                      id={id}
+                      style={style}
+                      title={title}
+                    >
                       {children}
                     </code>
                   );

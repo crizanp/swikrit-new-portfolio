@@ -7,7 +7,6 @@ import { ChevronUp, MoreHorizontal, Search } from "lucide-react";
 import { CollapsibleTagList } from "@/components/ui/collapsible-tag-list";
 import { Input } from "@/components/ui/input";
 import type { BlogPost } from "@/lib/types";
-import { formatDate } from "@/lib/utils";
 
 interface BlogListingClientProps {
   posts: BlogPost[];
@@ -163,7 +162,7 @@ export function BlogListingClient({ posts }: BlogListingClientProps) {
                   {post.excerpt ?? "No excerpt available."}
                 </p>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{formatDate(post.published_at ?? post.created_at)}</span>
+                  {/* <span>{formatDate(post.published_at ?? post.created_at)}</span> */}
                   <span>{readTime} min read</span>
                 </div>
                 <Link href={`/blog/${post.slug}`} className="text-sm font-medium text-brand">

@@ -225,7 +225,7 @@ export function BlogManager({ initialPosts }: BlogManagerProps) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-xl font-semibold text-zinc-100">Blog Manager</h2>
-          <p className="text-sm text-zinc-400">Write in markdown, tune SEO fields, and toggle publish status.</p>
+          <p className="text-sm text-zinc-400">Write in markdown + HTML, tune SEO fields, and toggle publish status.</p>
         </div>
 
         <button
@@ -455,7 +455,10 @@ export function BlogManager({ initialPosts }: BlogManagerProps) {
           </label>
 
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.1em] text-zinc-400">Content (Markdown)</p>
+            <p className="text-xs uppercase tracking-[0.1em] text-zinc-400">Content (Markdown + HTML)</p>
+            <p className="text-xs text-zinc-500">
+              Supports Markdown and safe HTML tags, including inline style and class attributes.
+            </p>
             <MDEditor
               value={draft.content}
               onChange={(value) => setDraft((current) => ({ ...current, content: value ?? "" }))}
