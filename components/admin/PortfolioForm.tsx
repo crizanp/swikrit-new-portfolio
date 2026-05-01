@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { PortfolioItem } from "@/lib/types";
 import { FileUploader } from "@/components/admin/FileUploader";
-import { resolvePortfolioThumbnailUrl } from "@/lib/portfolio-media";
+import {
+  resolvePortfolioSourceUrl,
+  resolvePortfolioThumbnailUrl,
+} from "@/lib/portfolio-media";
 
 type PortfolioFormValues = {
   title: string;
@@ -32,6 +35,11 @@ const categoryOptions = [
   "documentary",
   "social_media",
   "motion_graphics",
+  "instagram",
+  "facebook",
+  "youtube",
+  "linkedin",
+  "tiktok",
 ];
 
 function normalizeTags(tags: string[] | null | undefined) {
@@ -53,6 +61,8 @@ export function PortfolioForm({ initialValue, onCancel, onSubmit }: PortfolioFor
   const [tagsInput, setTagsInput] = useState(normalizeTags(initialValue?.tags));
   const [isFeatured, setIsFeatured] = useState(Boolean(initialValue?.is_featured));
   const [displayOrder, setDisplayOrder] = useState(initialValue?.display_order ?? 0);
+  const [remoteThumbnailUrl, setRemoteThumbnailUrl] = useState<string | null>(null);
+  const [isResolvingRemoteThumbnail, setIsResolvingRemoteThumbnail] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,6 +77,8 @@ export function PortfolioForm({ initialValue, onCancel, onSubmit }: PortfolioFor
     setTagsInput(normalizeTags(initialValue?.tags));
     setIsFeatured(Boolean(initialValue?.is_featured));
     setDisplayOrder(initialValue?.display_order ?? 0);
+    setRemoteThumbnailUrl(null);
+    setIsResolvingRemoteThumbnail(false);
     setError(null);
   }, [initialValue]);
 
@@ -79,6 +91,73 @@ export function PortfolioForm({ initialValue, onCancel, onSubmit }: PortfolioFor
     [tagsInput]
   );
 
+  const generatedThumbnail = useMemo(
+    () =>
+      resolvePortfolioThumbnailUrl({
+        thumbnail_url: null,
+        video_url: videoUrl,
+        video_embed: videoEmbed,
+      }),
+    [videoUrl, videoEmbed]
+  );
+
+  const sourceUrl = useMemo(
+    () =>
+      resolvePortfolioSourceUrl({
+        thumbnail_url: null,
+        video_url: videoUrl,
+        video_embed: videoEmbed,
+      }),
+    [videoUrl, videoEmbed]
+  );
+
+  useEffect(() => {
+    const customThumbnail = thumbnailUrl.trim();
+
+    if (customThumbnail || generatedThumbnail || !sourceUrl) {
+      setRemoteThumbnailUrl(null);
+      setIsResolvingRemoteThumbnail(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsResolvingRemoteThumbnail(true);
+    setRemoteThumbnailUrl(null);
+
+    void fetch(`/api/portfolio/thumbnail?url=${encodeURIComponent(sourceUrl)}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => null)) as
+          | { data?: { thumbnail_url?: string | null }; error?: string }
+          | null;
+
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Failed to resolve thumbnail preview.");
+        }
+
+        return payload?.data?.thumbnail_url ?? null;
+      })
+      .then((nextThumbnail) => {
+        if (!controller.signal.aborted) {
+          setRemoteThumbnailUrl(nextThumbnail);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setRemoteThumbnailUrl(null);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsResolvingRemoteThumbnail(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [thumbnailUrl, generatedThumbnail, sourceUrl]);
+
   const thumbnailPreview = useMemo(() => {
     const customThumbnail = thumbnailUrl.trim();
 
@@ -89,21 +168,22 @@ export function PortfolioForm({ initialValue, onCancel, onSubmit }: PortfolioFor
       };
     }
 
-    const generatedThumbnail = resolvePortfolioThumbnailUrl({
-      thumbnail_url: null,
-      video_url: videoUrl,
-      video_embed: videoEmbed,
-    });
-
     if (!generatedThumbnail) {
-      return null;
+      if (!remoteThumbnailUrl) {
+        return null;
+      }
+
+      return {
+        url: remoteThumbnailUrl,
+        source: "metadata" as const,
+      };
     }
 
     return {
       url: generatedThumbnail,
       source: "auto" as const,
     };
-  }, [thumbnailUrl, videoUrl, videoEmbed]);
+  }, [thumbnailUrl, generatedThumbnail, remoteThumbnailUrl]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,7 +203,7 @@ export function PortfolioForm({ initialValue, onCancel, onSubmit }: PortfolioFor
         category,
         client: client.trim(),
         tags: parsedTags,
-        thumbnail_url: thumbnailUrl,
+        thumbnail_url: thumbnailUrl.trim() || remoteThumbnailUrl || "",
         video_url: videoUrl,
         video_embed: videoEmbed,
         is_featured: isFeatured,
@@ -274,13 +354,23 @@ export function PortfolioForm({ initialValue, onCancel, onSubmit }: PortfolioFor
             <p className="text-xs text-zinc-400">
               {thumbnailPreview.source === "custom"
                 ? "Using custom thumbnail URL."
-                : "Auto-generated from current video URL/embed."}
+                : thumbnailPreview.source === "metadata"
+                  ? "Auto-generated from social link metadata."
+                  : "Auto-generated from current video URL/embed."}
             </p>
           </>
         ) : (
-          <p className="text-sm text-zinc-500">
-            Type a YouTube, Vimeo, or Dailymotion video URL/embed to preview the thumbnail before saving.
-          </p>
+          <div className="space-y-1">
+            {isResolvingRemoteThumbnail ? (
+              <p className="text-sm text-zinc-500">
+                Resolving thumbnail from the pasted link...
+              </p>
+            ) : (
+              <p className="text-sm text-zinc-500">
+                Paste YouTube, Vimeo, Dailymotion, Instagram, TikTok, Facebook, or LinkedIn URL to auto-preview.
+              </p>
+            )}
+          </div>
         )}
       </div>
 

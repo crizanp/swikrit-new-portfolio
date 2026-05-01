@@ -2,6 +2,19 @@ import type { PortfolioItem } from "@/lib/types";
 
 type PortfolioMediaInput = Pick<PortfolioItem, "thumbnail_url" | "video_url" | "video_embed">;
 
+const remoteThumbnailDomains = [
+  "youtube.com",
+  "youtu.be",
+  "vimeo.com",
+  "dailymotion.com",
+  "dai.ly",
+  "instagram.com",
+  "facebook.com",
+  "fb.watch",
+  "tiktok.com",
+  "linkedin.com",
+];
+
 function cleanText(value: string | null | undefined) {
   if (typeof value !== "string") {
     return null;
@@ -23,6 +36,111 @@ function parseUrl(value: string | null) {
   }
 }
 
+function hostnameMatches(hostname: string, domain: string) {
+  return hostname === domain || hostname.endsWith(`.${domain}`);
+}
+
+function isRemoteThumbnailDomain(hostname: string) {
+  const normalized = hostname.toLowerCase();
+  return remoteThumbnailDomains.some((domain) => hostnameMatches(normalized, domain));
+}
+
+function decodeHtmlEntities(value: string) {
+  return value
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#x27;|&#39;/gi, "'")
+    .replace(/&#x2f;|&#47;/gi, "/")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">");
+}
+
+function resolveCandidateUrl(candidate: string, baseUrl: string) {
+  const normalized = decodeHtmlEntities(candidate).trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const maybePrefixed = normalized.startsWith("//") ? `https:${normalized}` : normalized;
+
+  try {
+    const resolved = new URL(maybePrefixed, baseUrl);
+
+    if (!/^https?:$/i.test(resolved.protocol)) {
+      return null;
+    }
+
+    return resolved.toString();
+  } catch {
+    return null;
+  }
+}
+
+function extractMetaImageUrl(html: string, baseUrl: string) {
+  const patterns = [
+    /<meta[^>]+(?:property|name)=["'](?:og:image:secure_url|og:image|twitter:image:src|twitter:image)["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image:secure_url|og:image|twitter:image:src|twitter:image)["'][^>]*>/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    const candidate = match?.[1];
+
+    if (!candidate) {
+      continue;
+    }
+
+    const resolved = resolveCandidateUrl(candidate, baseUrl);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return null;
+}
+
+async function fetchRemoteThumbnailByMetadata(url: URL) {
+  if (!isRemoteThumbnailDomain(url.hostname)) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5500);
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      redirect: "follow",
+      cache: "no-store",
+      signal: controller.signal,
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
+        "User-Agent":
+          "Mozilla/5.0 (compatible; SwikritThumbnailResolver/1.0; +https://swikrit.com)",
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
+    if (!contentType.includes("text/html")) {
+      return null;
+    }
+
+    const html = (await response.text()).slice(0, 700_000);
+    const resolved = extractMetaImageUrl(html, response.url || url.toString());
+
+    return resolved;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export function normalizeOptionalUrl(value: string | null | undefined) {
   return cleanText(value);
 }
@@ -36,6 +154,23 @@ export function extractIframeSrc(iframeText: string | null | undefined) {
 
   const srcMatch = value.match(/src=["']([^"']+)["']/i);
   return srcMatch?.[1]?.trim() ?? null;
+}
+
+function extractAbsoluteUrlFromText(rawText: string | null | undefined) {
+  const value = cleanText(rawText);
+
+  if (!value) {
+    return null;
+  }
+
+  const decoded = decodeHtmlEntities(value);
+  const absoluteMatch = decoded.match(/https?:\/\/[^\s"'<>]+/i);
+
+  if (!absoluteMatch?.[0]) {
+    return null;
+  }
+
+  return absoluteMatch[0].trim();
 }
 
 function extractYouTubeId(url: URL) {
@@ -110,6 +245,26 @@ function extractDailymotionId(url: URL) {
   return null;
 }
 
+function extractInstagramPost(url: URL) {
+  const hostname = url.hostname.toLowerCase();
+
+  if (!hostname.includes("instagram.com")) {
+    return null;
+  }
+
+  const parts = url.pathname.split("/").filter(Boolean);
+  const markerIndex = parts.findIndex((part) => part === "p" || part === "reel" || part === "tv");
+
+  if (markerIndex < 0 || !parts[markerIndex + 1]) {
+    return null;
+  }
+
+  return {
+    kind: parts[markerIndex] as "p" | "reel" | "tv",
+    code: parts[markerIndex + 1],
+  };
+}
+
 export function resolvePortfolioSourceUrl(input: PortfolioMediaInput) {
   const iframeSrc = extractIframeSrc(input.video_embed);
 
@@ -120,6 +275,11 @@ export function resolvePortfolioSourceUrl(input: PortfolioMediaInput) {
   const embedAsUrl = cleanText(input.video_embed);
   if (embedAsUrl && /^https?:\/\//i.test(embedAsUrl)) {
     return embedAsUrl;
+  }
+
+  const embeddedAbsoluteUrl = extractAbsoluteUrlFromText(input.video_embed);
+  if (embeddedAbsoluteUrl) {
+    return embeddedAbsoluteUrl;
   }
 
   return cleanText(input.video_url);
@@ -183,6 +343,38 @@ export function resolvePortfolioThumbnailUrl(input: PortfolioMediaInput) {
   const dailymotionId = extractDailymotionId(parsedUrl);
   if (dailymotionId) {
     return `https://www.dailymotion.com/thumbnail/video/${dailymotionId}`;
+  }
+
+  if (/\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(parsedUrl.pathname)) {
+    return parsedUrl.toString();
+  }
+
+  return null;
+}
+
+export async function resolvePortfolioThumbnailUrlFromRemote(input: PortfolioMediaInput) {
+  const syncResult = resolvePortfolioThumbnailUrl(input);
+  if (syncResult) {
+    return syncResult;
+  }
+
+  const source = resolvePortfolioSourceUrl(input);
+  const parsedUrl = parseUrl(source);
+
+  if (!parsedUrl) {
+    return null;
+  }
+
+  const metadataThumbnail = await fetchRemoteThumbnailByMetadata(parsedUrl);
+
+  if (metadataThumbnail) {
+    return metadataThumbnail;
+  }
+
+  const instagramPost = extractInstagramPost(parsedUrl);
+
+  if (instagramPost) {
+    return `https://www.instagram.com/${instagramPost.kind}/${instagramPost.code}/media/?size=l`;
   }
 
   return null;

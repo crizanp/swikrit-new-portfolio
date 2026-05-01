@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -22,6 +22,10 @@ import type { SocialPost } from "@/lib/types";
 import { ConfirmModal } from "@/components/admin/ConfirmModal";
 import { DrawerForm } from "@/components/admin/DrawerForm";
 import { FileUploader } from "@/components/admin/FileUploader";
+import {
+  resolvePortfolioSourceUrl,
+  resolvePortfolioThumbnailUrl,
+} from "@/lib/portfolio-media";
 import { formatDate } from "@/lib/utils";
 
 type SocialPostsManagerProps = {
@@ -175,6 +179,8 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
   const [draft, setDraft] = useState<SocialDraft>(toDraft());
+  const [remoteThumbnailUrl, setRemoteThumbnailUrl] = useState<string | null>(null);
+  const [isResolvingRemoteThumbnail, setIsResolvingRemoteThumbnail] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SocialPost | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -188,6 +194,111 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
     () => [...posts].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)),
     [posts]
   );
+
+  const generatedThumbnailUrl = useMemo(
+    () =>
+      resolvePortfolioThumbnailUrl({
+        thumbnail_url: null,
+        video_url: draft.post_url,
+        video_embed: draft.embed_code,
+      }),
+    [draft.post_url, draft.embed_code]
+  );
+
+  const sourceUrl = useMemo(
+    () =>
+      resolvePortfolioSourceUrl({
+        thumbnail_url: null,
+        video_url: draft.post_url,
+        video_embed: draft.embed_code,
+      }),
+    [draft.post_url, draft.embed_code]
+  );
+
+  const thumbnailPreview = useMemo(() => {
+    const manualThumbnail = draft.thumbnail_url.trim();
+
+    if (manualThumbnail) {
+      return {
+        url: manualThumbnail,
+        source: "custom" as const,
+      };
+    }
+
+    if (generatedThumbnailUrl) {
+      return {
+        url: generatedThumbnailUrl,
+        source: "auto" as const,
+      };
+    }
+
+    if (remoteThumbnailUrl) {
+      return {
+        url: remoteThumbnailUrl,
+        source: "metadata" as const,
+      };
+    }
+
+    return null;
+  }, [draft.thumbnail_url, generatedThumbnailUrl, remoteThumbnailUrl]);
+
+  useEffect(() => {
+    if (!drawerOpen) {
+      return;
+    }
+
+    const manualThumbnail = draft.thumbnail_url.trim();
+
+    if (manualThumbnail || generatedThumbnailUrl || !sourceUrl) {
+      setRemoteThumbnailUrl(null);
+      setIsResolvingRemoteThumbnail(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsResolvingRemoteThumbnail(true);
+    setRemoteThumbnailUrl(null);
+
+    void fetch("/api/social/thumbnail", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      signal: controller.signal,
+      body: JSON.stringify({
+        post_url: draft.post_url,
+        embed_code: draft.embed_code,
+        thumbnail_url: null,
+      }),
+    })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => null)) as
+          | { data?: { thumbnail_url?: string | null }; error?: string }
+          | null;
+
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Failed to resolve social thumbnail.");
+        }
+
+        return payload?.data?.thumbnail_url ?? null;
+      })
+      .then((nextThumbnail) => {
+        if (!controller.signal.aborted) {
+          setRemoteThumbnailUrl(nextThumbnail);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setRemoteThumbnailUrl(null);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsResolvingRemoteThumbnail(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [draft.embed_code, draft.post_url, draft.thumbnail_url, drawerOpen, generatedThumbnailUrl, sourceUrl]);
 
   async function refreshPosts() {
     setIsRefreshing(true);
@@ -207,6 +318,8 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
   function openCreate() {
     setEditingPost(null);
     setDraft(toDraft());
+    setRemoteThumbnailUrl(null);
+    setIsResolvingRemoteThumbnail(false);
     setError(null);
     setDrawerOpen(true);
   }
@@ -214,6 +327,8 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
   function openEdit(post: SocialPost) {
     setEditingPost(post);
     setDraft(toDraft(post));
+    setRemoteThumbnailUrl(null);
+    setIsResolvingRemoteThumbnail(false);
     setError(null);
     setDrawerOpen(true);
   }
@@ -233,9 +348,9 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
       const payload = {
         platform: draft.platform.trim(),
         post_url: draft.post_url.trim(),
-        embed_code: draft.embed_code,
+        embed_code: draft.embed_code.trim(),
         caption: draft.caption,
-        thumbnail_url: draft.thumbnail_url,
+        thumbnail_url: draft.thumbnail_url.trim() || generatedThumbnailUrl || remoteThumbnailUrl || "",
         likes_count: Number(draft.likes_count),
         is_featured: draft.is_featured,
         posted_at: new Date(draft.posted_at).toISOString(),
@@ -468,6 +583,38 @@ export function SocialPostsManager({ initialPosts }: SocialPostsManagerProps) {
                 className="w-full rounded-md border border-white/20 bg-black px-3 py-2 text-sm text-zinc-100"
               />
             </label>
+          </div>
+
+          <div className="space-y-2 rounded-md border border-white/15 bg-zinc-950/70 p-3">
+            <p className="text-xs uppercase tracking-[0.1em] text-zinc-400">Thumbnail Preview</p>
+
+            {thumbnailPreview ? (
+              <>
+                <div className="relative h-44 w-full overflow-hidden rounded-md border border-white/15 bg-zinc-900">
+                  <Image
+                    src={thumbnailPreview.url}
+                    alt="Social post thumbnail preview"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 560px"
+                    className="object-cover"
+                  />
+                </div>
+
+                <p className="text-xs text-zinc-400">
+                  {thumbnailPreview.source === "custom"
+                    ? "Using uploaded/custom thumbnail URL."
+                    : thumbnailPreview.source === "metadata"
+                      ? "Auto-generated from social post metadata."
+                      : "Auto-generated from known platform URL format."}
+                </p>
+              </>
+            ) : isResolvingRemoteThumbnail ? (
+              <p className="text-sm text-zinc-500">Resolving thumbnail from link metadata...</p>
+            ) : (
+              <p className="text-sm text-zinc-500">
+                Paste Post URL or Embed Code and thumbnail will auto-generate when available.
+              </p>
+            )}
           </div>
 
           <label className="inline-flex items-center gap-2 text-sm text-zinc-200">

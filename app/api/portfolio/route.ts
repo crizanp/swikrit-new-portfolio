@@ -4,6 +4,7 @@ import { fallbackPortfolio } from "@/lib/constants";
 import {
   normalizeOptionalUrl,
   resolvePortfolioThumbnailUrl,
+  resolvePortfolioThumbnailUrlFromRemote,
   withResolvedPortfolioThumbnail,
 } from "@/lib/portfolio-media";
 import {
@@ -120,11 +121,19 @@ export async function POST(request: NextRequest) {
       insertPayload.video_embed = normalizeOptionalUrl(insertPayload.video_embed) ?? undefined;
     }
 
-    const generatedThumbnail = resolvePortfolioThumbnailUrl({
+    let generatedThumbnail = resolvePortfolioThumbnailUrl({
       thumbnail_url: insertPayload.thumbnail_url ?? null,
       video_url: insertPayload.video_url ?? null,
       video_embed: insertPayload.video_embed ?? null,
     });
+
+    if (!insertPayload.thumbnail_url && !generatedThumbnail) {
+      generatedThumbnail = await resolvePortfolioThumbnailUrlFromRemote({
+        thumbnail_url: null,
+        video_url: insertPayload.video_url ?? null,
+        video_embed: insertPayload.video_embed ?? null,
+      });
+    }
 
     if (!insertPayload.thumbnail_url && generatedThumbnail) {
       insertPayload.thumbnail_url = generatedThumbnail;

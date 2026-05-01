@@ -16,6 +16,18 @@ const imageHostnames = [
 	"i.postimg.cc",
 	"vumbnail.com",
 	"www.dailymotion.com",
+	"instagram.com",
+	"www.instagram.com",
+	"**.cdninstagram.com",
+	"**.fbcdn.net",
+	"**.fbsbx.com",
+	"tiktok.com",
+	"www.tiktok.com",
+	"**.tiktokcdn.com",
+	"**.muscdn.com",
+	"linkedin.com",
+	"www.linkedin.com",
+	"**.licdn.com",
 ].filter(Boolean);
 
 const nextConfig = {

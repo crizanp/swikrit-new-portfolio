@@ -4,6 +4,7 @@ import { fallbackPortfolio } from "@/lib/constants";
 import {
   normalizeOptionalUrl,
   resolvePortfolioThumbnailUrl,
+  resolvePortfolioThumbnailUrlFromRemote,
   withResolvedPortfolioThumbnail,
 } from "@/lib/portfolio-media";
 import {
@@ -114,13 +115,23 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       hasOwn(updatePayload, "video_url") ||
       hasOwn(updatePayload, "video_embed")
     ) {
-      updatePayload.thumbnail_url = resolvePortfolioThumbnailUrl({
+      const thumbnailInput = {
         thumbnail_url:
           updatePayload.thumbnail_url ?? normalizeOptionalUrl(existing.thumbnail_url),
         video_url: updatePayload.video_url ?? normalizeOptionalUrl(existing.video_url),
         video_embed:
           updatePayload.video_embed ?? normalizeOptionalUrl(existing.video_embed),
-      });
+      };
+
+      const syncThumbnail = resolvePortfolioThumbnailUrl(thumbnailInput);
+      updatePayload.thumbnail_url = syncThumbnail;
+
+      if (!syncThumbnail) {
+        updatePayload.thumbnail_url = await resolvePortfolioThumbnailUrlFromRemote({
+          ...thumbnailInput,
+          thumbnail_url: null,
+        });
+      }
     }
 
     const { data, error } = await supabase
